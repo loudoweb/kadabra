@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project
+	xmlns="http://lime.software/project/1.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://lime.software/project/1.0.0 http://lime.software/xsd/project-1.0.1.xsd">
+
+	<meta title="Kadabra" package="fr.loudoweb.Kadabra" version="0.0.1" company="Lugludum" />
+	<app main="MainKadabra" />
+	
+	<window allow-high-dpi="true" background="#262626" resizable="false"/>
+	<window fps="60"/>
+	<window fps="0" if="html5"  /> 
+	
+	<source path="src"/>
+	
+	<haxelib name="openfl"  />
+	<haxelib name="actuate"/>
+	<haxelib name="feathersui"/>
+
+	<assets path="assets/fonts" embed="false"/>
+
+	<icon path="assets/icons/icon.png"/>
+
+</project>
