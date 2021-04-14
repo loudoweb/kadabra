@@ -1,5 +1,6 @@
 package text;
 
+import lime.system.System;
 import openfl.utils.Assets;
 import openfl.text.Font;
 import sys.FileSystem;
@@ -10,7 +11,7 @@ import sys.FileSystem;
  */
 class UserFontSystem
 {
-    static var FONT_SYSTEM_FOLDER(default, null):String = "C:/Windows/Fonts/";
+    static var FONT_SYSTEM_FOLDER(default, null):String = System.fontsDirectory;
 
     /**
      * Store all fonts used by the user in his application
@@ -24,7 +25,8 @@ class UserFontSystem
     inline public static function getAllFonts(): Array<String> {
         //return Font.enumerateFonts(true);  //waiting for openfl fix
         //TODO sort and return only ttf for max compatibilities
-        return FileSystem.readDirectory('C:/Windows/Fonts');
+        
+        return FileSystem.readDirectory(FONT_SYSTEM_FOLDER);
     }
 
     /**
