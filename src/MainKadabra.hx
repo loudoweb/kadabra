@@ -1,3 +1,5 @@
+import crashdumper.CrashDumper;
+import crashdumper.SessionData;
 import feathers.layout.AnchorLayoutData;
 import feathers.controls.TextInput;
 import feathers.layout.AnchorLayout;
@@ -23,6 +25,13 @@ class MainKadabra extends Application {
 
 	public function new() {
 		super();
+
+		//crash logs system
+		
+		var unique_id:String = SessionData.generateID("kadabra_"); 
+		var crashDumper = new CrashDumper(unique_id); 
+
+		//application
 
 		var darkSKin = new RectangleSkin();
 		darkSKin.fill = SolidColor(0x262626);//0x262626 333333 404040
@@ -67,7 +76,6 @@ class MainKadabra extends Application {
 		//header.autoSizeMode = STAGE;
 		var label = new Label();
 		label.text = "Kadabra";
-		//label.embedFonts = false;
 		label.textFormat = new TextFormat(Assets.getFont("assets/fonts/Roboto-Regular.ttf").fontName, 20, 0xFFFFFF);
 		header.addChild(label);
 
