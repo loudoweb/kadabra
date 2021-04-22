@@ -1,3 +1,4 @@
+import openfl.display.Scene;
 import feathers.layout.AnchorLayoutData;
 import feathers.controls.TextInput;
 import feathers.layout.AnchorLayout;
@@ -43,10 +44,13 @@ class MainKadabra extends Application {
 		panel.width = stage.stageWidth;
 		panel.height = stage.stageHeight;
 
-		panel.addChild(createHeader(darkSKin));
-		panel.addChild(createMainBoxes(semiDarkSkin));
+		var canvas = new KadabraCanvas();
 
-		addChild(panel);
+		panel.addChild(createHeader(darkSKin));
+		//panel.addChild(createMainBoxes(semiDarkSkin));
+		addChild(canvas);
+
+		//addChild(panel);
 
 		stage.addEventListener(Event.RESIZE, onResize);
 
@@ -77,12 +81,13 @@ class MainKadabra extends Application {
 	function createMainBoxes(skin:RectangleSkin):HDividedBox
 		{
 			var box = new HDividedBox();
+			box.height = 550;
 
 			var tool = new LayoutGroup();
 			tool.layout = new VerticalLayout();
 			tool.width = 60;
 			
-			var canvas = new Sprite();
+			var canvas = new KadabraCanvas();
 			
 			var properties = new LayoutGroup();
 			properties.width = 300;
@@ -90,8 +95,8 @@ class MainKadabra extends Application {
 			
 
 			box.addChild(tool);
-			box.addChild(canvas);
 			box.addChild(properties);
+			box.addChild(canvas);
 
 			return box;
 		}
