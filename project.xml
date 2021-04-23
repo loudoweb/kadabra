@@ -17,6 +17,15 @@
 	<haxelib name="actuate"/>
 	<haxelib name="feathersui"/>
 	<haxelib name="crashdumper"/>
+	<haxelib name="svg"/>
+	<haxelib name="native-clipboard"/>
+	
+
+	<section if="windows">
+		<haxelib name="hxcpp-debug-server"/>
+		<haxedef name="HXCPP_STACK_LINE" />
+		<haxedef name="HXCPP_STACK_TRACE"/>
+	</section>
 
 	<assets path="assets/fonts" embed="false"/>
 
