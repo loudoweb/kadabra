@@ -18,7 +18,7 @@
 	<haxelib name="feathersui"/>
 	<haxelib name="crashdumper"/>
 	<haxelib name="svg"/>
-	<haxelib name="native-clipboard"/>
+	<haxelib name="native-clipboard" if="windows"/>
 	
 
 	<section if="windows">
