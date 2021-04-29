@@ -7,7 +7,7 @@
 	<meta title="Kadabra" package="fr.loudoweb.Kadabra" version="0.0.1" company="Lugludum" />
 	<app main="MainKadabra" file="Kadabra" />
 	
-	<window allow-high-dpi="true" background="#262626" resizable="false"/>
+	<window allow-high-dpi="true" background="#262626" resizable="true" maximized="true"/>
 	<window fps="60"/>
 	<window fps="0" if="html5"  /> 
 	

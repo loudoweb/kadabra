@@ -15,11 +15,11 @@ class Gizmo extends Sprite {
 
         if (horizontal > 0) {
             right = true;
-            rectColor += 0x7F0000;
+            rectColor -= 0x7F0000;
         }
         else if (horizontal < 0) {
             left = true;
-            rectColor -= 0x7F0000;
+            rectColor += 0x7F0000;
         }
         if (vertical > 0) {
             down = true;

@@ -1,3 +1,10 @@
+import feathers.events.FeathersEvent;
+import feathers.events.ScrollEvent;
+import feathers.controls.HScrollBar;
+import feathers.utils.Scroller;
+import feathers.controls.ScrollContainer;
+import feathers.data.ArrayHierarchicalCollection;
+import feathers.controls.TreeView;
 import crashdumper.CrashDumper;
 import crashdumper.SessionData;
 import openfl.display.Scene;
@@ -23,6 +30,7 @@ import openfl.Assets;
 class MainKadabra extends Application {
 
 	var panel:LayoutGroup;
+	var box:HDividedBox;
 
 	public function new() {
 		super();
@@ -53,12 +61,10 @@ class MainKadabra extends Application {
 		panel.width = stage.stageWidth;
 		panel.height = stage.stageHeight;
 
-		var canvas = new KadabraCanvas();
+		panel.addChild(createHeader(darkSKin));
+		panel.addChild(createMainBoxes(semiDarkSkin));
 
-		//panel.addChild(createMainBoxes(semiDarkSkin));
-		addChild(canvas);
-
-		//addChild(panel);
+		addChild(panel);
 
 		stage.addEventListener(Event.RESIZE, onResize);
 
@@ -86,26 +92,61 @@ class MainKadabra extends Application {
 	}
 
 	function createMainBoxes(skin:RectangleSkin):HDividedBox
-		{
-			var box = new HDividedBox();
-			box.height = 550;
+	{
+		var box = new HDividedBox();
+		box.height = stage.stageHeight - 30;
+		box.backgroundSkin = skin;
+		
+		var rect = new RectangleSkin();
+		rect.fill = SolidColor(0xCCCCCC);
+		rect.height = 2500;
+		rect.width = 5000;
+		rect.mouseEnabled = false;
 
-			var tool = new LayoutGroup();
-			tool.layout = new VerticalLayout();
-			tool.width = 60;
-			
-			var canvas = new KadabraCanvas();
-			
-			var properties = new LayoutGroup();
-			properties.width = 300;
-			properties.minWidth = 300;
-			
+		var tool = new LayoutGroup();
+		tool.layout = new VerticalLayout();
+		tool.width = 60;
+		tool.minWidth = 60;
 
-			box.addChild(tool);
-			box.addChild(canvas);
+		var hierarchy = new TreeView();
+		var hierarchyData = new ArrayHierarchicalCollection();
+		hierarchy.dataProvider = hierarchyData;
+		hierarchy.width = 60;
+		hierarchy.minWidth = 60;
+		
+		var canvasContainer = new ScrollContainer();
+		var canvas = new KadabraCanvas();
 
-			return box;
-		}
+		//canvas.height = canvasContainer.height + 400;
+		//canvas.width = canvasContainer.width + 400;
+
+		canvasContainer.addChild(rect);
+		canvasContainer.addChild(canvas);
+		canvasContainer.scrollX = 1000;
+		canvasContainer.scrollY = 500;
+
+		canvasContainer.addEventListener(ScrollEvent.SCROLL_COMPLETE, scrollUpdate);
+		
+		var properties = new LayoutGroup();
+		properties.width = 300;
+		properties.minWidth = 300;
+
+		box.addChild(tool);
+		box.addChild(hierarchy);
+		box.addChild(canvasContainer);
+		box.addChild(properties);
+
+		return box;
+	}
+
+	function scrollUpdate(e:ScrollEvent):Void
+	{
+		var canvasContainer = cast (e.currentTarget, ScrollContainer);
+		var canvas = cast (canvasContainer.getChildAt(1), KadabraCanvas);
+
+		canvas.scrollX = canvasContainer.scrollX;
+		canvas.scrollY = canvasContainer.scrollY;
+	}
 
 	function onResize(e:Event):Void
 	{

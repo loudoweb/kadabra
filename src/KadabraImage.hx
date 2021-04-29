@@ -15,7 +15,7 @@ class KadabraImage extends Sprite {
 	public var row:Int;
 	public var type:Int;
 
-	public var isSelected = false;
+	public var isSelected = true;
 
 	public var image:Bitmap;
 

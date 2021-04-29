@@ -1,3 +1,6 @@
+import feathers.controls.ScrollContainer;
+import openfl.geom.Point;
+import feathers.skins.RectangleSkin;
 import openfl.display.Bitmap;
 import openfl.display.BitmapData;
 import openfl.display.Sprite;
@@ -43,6 +46,9 @@ class KadabraCanvas extends Sprite {
 
 	var ratio:Float;
 
+	public var scrollX = 1000.;
+	public var scrollY = 500.;
+
     public function new () {
 		
 		super ();
@@ -53,6 +59,16 @@ class KadabraCanvas extends Sprite {
 	}
 
     private function construct ():Void {
+
+		//graphics.beginFill(0xCCCCCC, 1);
+		//graphics.drawRect(-200,-200,600,600);
+		//graphics.endFill();
+		var background = new RectangleSkin();
+		background.width = 3000;
+		background.height = 2000;
+		background.fill = SolidColor(0xCCCCCC);
+
+		//addChild (background);
 
 		addChild (imageContainer);
 
@@ -75,6 +91,8 @@ class KadabraCanvas extends Sprite {
 		gizmoUR = new Gizmo(-1, 1);
 		gizmoL = new Gizmo(0, -1);
 		gizmoR = new Gizmo(0, 1);
+
+		//opaqueBackground = 0x7F0000;
 	}
 
 	private function onAddedtoStage(event:Event){
@@ -92,11 +110,32 @@ class KadabraCanvas extends Sprite {
 		BitmapData.loadFromFile(path).onComplete(function (bitmapdata){
 			var image = new KadabraImage (bitmapdata);
 			imageContainer.addChild(image);
-			
+			var splitPath = path.split("\\");
+			image.name = splitPath[splitPath.length - 1];
+
+			for (image in selectedImages) {
+				image.unselect();
+			} 
+			selectedImages.clear();
+			selectedImages.add(image);
+			selectedImages.last().select();
+
+			var imagePoint = new Point(mouseX, mouseY);
+			imagePoint = globalToLocal(imagePoint);
+
+			image.x = imagePoint.x;
+			image.y = imagePoint.y;
+
+			offsets = [];
+			offsets.push(parent.parent.x + image.width / 2 - scrollX);
+			offsets.push(parent.parent.parent.y + image.height / 2 - scrollY);
+
+			stage.addEventListener (MouseEvent.MOUSE_MOVE, dragImage);
 		});
 	}
 	
 	private function startDragging (event:MouseEvent):Void{
+		
 		if (Std.is (event.target, KadabraImage)) {
 			if (selectedImages.isEmpty()){
 				selectedImages.add(cast (event.target, KadabraImage));
@@ -120,6 +159,7 @@ class KadabraCanvas extends Sprite {
 			}
 
 			stage.addEventListener (MouseEvent.MOUSE_MOVE, dragImage);
+			
 		}
 		else if (Std.is (event.target, Gizmo)) {
 			currentGizmo = cast (event.target, Gizmo);
