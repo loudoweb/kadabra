@@ -1,7 +1,9 @@
 package sys;
+import openfl.display.PNGEncoderOptions;
 import openfl.display.BitmapData;
-#if windows
-import haxe.extension.Clipboard;
+#if cpp
+import haxe.extension.*;
+#else
 import haxe.extension.EClipboard;
 #end
 
@@ -11,24 +13,30 @@ class KadabraClipboard
 
     public static function count():Int
     {
+        #if cpp
         return Clipboard.count_formats();
+        #else
+        return 0;
+        #end
     }
 
     public static function fetch():Void
     {
+        #if cpp
         var str = Clipboard.list_available_format();
-        if(str != "")
+        if(str != "" && str.toUpperCase() != "NULL")
         {
             lastFetchedFormats = str.split(",");
         }else{
             lastFetchedFormats = [];
         }
         trace(lastFetchedFormats);
+        #end
     }
 
     public static function has(format:EClipboard, fetchNow = false):Bool {
         var _r = false;
-        #if windows
+        #if cpp
         try{
             if(fetchNow || lastFetchedFormats == null)
                 fetch();
@@ -44,39 +52,27 @@ class KadabraClipboard
 
     public static function getString(format:EClipboard):String
     {
-        #if windows
+        #if cpp
         var str = Clipboard.get_data(format);
-        if(str != "")
-        {
-            switch(format)
-            {
-                case TYPE_HTML:
-                    var begin = str.indexOf("<!--StartFragment-->");
-                    var end = str.indexOf("<!--EndFragment-->");
-                    return str.substring(begin + 20, end);
-                case TYPE_SVG:
-                    var end = str.indexOf("</svg>");
-                    return str.substring(0, end + 6);
-                default:
-                    return str;
-            }
-        }
-        #end
+        return ClipboardUtils.getString(str, format);
+        #else
         return "";
+        #end
     }
 
     public static function getText():String
     {
-        #if windows
+        #if cpp
         return Clipboard.get_text();
-        #end
+        #else
         return "";
+        #end
     }
 
     public static function getImage():BitmapData
     {
         var bd:BitmapData = null;
-        #if windows
+        #if cpp
         var bytes = Clipboard.get_image();
 
         if(bytes != null && bytes.length > 0)
@@ -90,5 +86,41 @@ class KadabraClipboard
         }
         #end
         return bd;
+    }
+
+    public static function clear():Void
+    {
+        #if cpp
+        Clipboard.clear();
+        #end
+    }
+
+    public static function setText(str:String):Void
+    {
+        #if cpp
+        Clipboard.set_text(str);
+        #end
+    }
+
+    public static function setHTMLText(str:String):Void
+    {
+        #if cpp
+        Clipboard.set_data(EClipboard.HTML, ClipboardUtils.formatHTML(str));
+        #end
+    }
+
+    public static function setSVGText(str:String):Void
+    {
+        #if cpp
+        Clipboard.set_data(EClipboard.SVG, str);
+        #end
+    }
+
+    public static function setImage(bitmap:BitmapData):Void
+    {
+        #if cpp
+        var bytes = bitmap.encode(bitmap.rect, new PNGEncoderOptions(true) );
+        Clipboard.set_image(bytes);
+        #end
     }
 }
