@@ -9,7 +9,7 @@
 	
 	<window allow-high-dpi="true" background="#262626" resizable="false"/>
 	<window fps="60"/>
-	<window fps="0" if="html5"  /> 
+	<window fps="0" if="html5"  maximized="true"/> 
 	
 	<source path="src"/>
 	
@@ -18,16 +18,20 @@
 	<haxelib name="feathersui"/>
 	<haxelib name="crashdumper"/>
 	<haxelib name="svg"/>
-	<haxelib name="native-clipboard" if="windows"/>
+	
+	<haxelib name="native-clipboard"/>
+
+	
 	
 
-	<section if="windows">
+	<section if="cpp">
 		<haxelib name="hxcpp-debug-server"/>
 		<haxedef name="HXCPP_STACK_LINE" />
 		<haxedef name="HXCPP_STACK_TRACE"/>
 	</section>
 
 	<assets path="assets/fonts" embed="false"/>
+	<assets path="assets/icons" rename="icons"/>
 
 	<icon path="assets/icons/icon.png"/>
 

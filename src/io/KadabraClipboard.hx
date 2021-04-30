@@ -1,4 +1,4 @@
-package sys;
+package io;
 import openfl.display.PNGEncoderOptions;
 import openfl.display.BitmapData;
 #if cpp
