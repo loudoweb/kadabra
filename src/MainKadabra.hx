@@ -31,6 +31,7 @@ class MainKadabra extends Application {
 
 	var panel:LayoutGroup;
 	var box:HDividedBox;
+	var canvasContainer:CanvasContainer;
 
 	public function new() {
 		super();
@@ -93,7 +94,7 @@ class MainKadabra extends Application {
 
 	function createMainBoxes(skin:RectangleSkin):HDividedBox
 	{
-		var box = new HDividedBox();
+		box = new HDividedBox();
 		box.height = stage.stageHeight - 30;
 		box.backgroundSkin = skin;
 		
@@ -114,18 +115,7 @@ class MainKadabra extends Application {
 		hierarchy.width = 60;
 		hierarchy.minWidth = 60;
 		
-		var canvasContainer = new ScrollContainer();
-		var canvas = new KadabraCanvas();
-
-		//canvas.height = canvasContainer.height + 400;
-		//canvas.width = canvasContainer.width + 400;
-
-		canvasContainer.addChild(rect);
-		canvasContainer.addChild(canvas);
-		canvasContainer.scrollX = 1000;
-		canvasContainer.scrollY = 500;
-
-		canvasContainer.addEventListener(ScrollEvent.SCROLL_COMPLETE, scrollUpdate);
+		canvasContainer = new CanvasContainer();
 		
 		var properties = new LayoutGroup();
 		properties.width = 300;
@@ -139,19 +129,11 @@ class MainKadabra extends Application {
 		return box;
 	}
 
-	function scrollUpdate(e:ScrollEvent):Void
-	{
-		var canvasContainer = cast (e.currentTarget, ScrollContainer);
-		var canvas = cast (canvasContainer.getChildAt(1), KadabraCanvas);
-
-		canvas.scrollX = canvasContainer.scrollX;
-		canvas.scrollY = canvasContainer.scrollY;
-	}
-
 	function onResize(e:Event):Void
 	{
 		panel.width = stage.stageWidth;
 		panel.height = stage.stageHeight;
+		box.height = stage.stageHeight - 30;
 	}
 
 	function onUpdate(e:Event):Void

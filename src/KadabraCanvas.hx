@@ -1,3 +1,7 @@
+import openfl.ui.Mouse;
+import hl.UI.Window;
+import openfl.ui.MouseCursor;
+import lime.ui.MouseCursor;
 import feathers.controls.ScrollContainer;
 import openfl.geom.Point;
 import feathers.skins.RectangleSkin;
@@ -13,15 +17,16 @@ import openfl.Lib;
 
 class KadabraCanvas extends Sprite {
 
-    var imageContainer:Sprite;
+    public var background:RectangleSkin;
+	var imageContainer:Sprite;
 
-	var offsets:Array<Float>;
+	public var offsets:Array<Float>;
 	var gizmoOffsetX:Float;
 	var gizmoOffsetY:Float;
 
-	var selectedImages:List<KadabraImage>;
+	public var selectedImages:List<KadabraImage>;
 
-	var dragging = false;
+	public var dragging = false;
 
 	var upOrigin:Float;
 	var downOrigin:Float;
@@ -46,8 +51,10 @@ class KadabraCanvas extends Sprite {
 
 	var ratio:Float;
 
-	public var scrollX = 1000.;
-	public var scrollY = 500.;
+	public var scrollX:Float;
+	public var scrollY:Float;
+	public var scrollSpeedX = 0.;
+	public var scrollSpeedY = 0.;
 
     public function new () {
 		
@@ -63,12 +70,13 @@ class KadabraCanvas extends Sprite {
 		//graphics.beginFill(0xCCCCCC, 1);
 		//graphics.drawRect(-200,-200,600,600);
 		//graphics.endFill();
-		var background = new RectangleSkin();
+		background = new RectangleSkin();
 		background.width = 3000;
 		background.height = 2000;
 		background.fill = SolidColor(0xCCCCCC);
+		background.mouseEnabled = false;
 
-		//addChild (background);
+		addChild (background);
 
 		addChild (imageContainer);
 
@@ -102,6 +110,7 @@ class KadabraCanvas extends Sprite {
 		stage.addEventListener (MouseEvent.MOUSE_UP, stopDragging);
 		stage.addEventListener (MouseEvent.CLICK, selectImage, true);
 
+		stage.addEventListener (MouseEvent.RELEASE_OUTSIDE, onMouseUp);
 	}
 
     private function dragNDrop(path:String){
@@ -120,15 +129,15 @@ class KadabraCanvas extends Sprite {
 			selectedImages.add(image);
 			selectedImages.last().select();
 
-			var imagePoint = new Point(mouseX, mouseY);
+			var imagePoint = new Point(stage.mouseX, stage.mouseY);
 			imagePoint = globalToLocal(imagePoint);
 
 			image.x = imagePoint.x;
 			image.y = imagePoint.y;
 
 			offsets = [];
-			offsets.push(parent.parent.x + image.width / 2 - scrollX);
-			offsets.push(parent.parent.parent.y + image.height / 2 - scrollY);
+			offsets.push(x + parent.parent.x + image.width / 2 - scrollX);
+			offsets.push(y + parent.parent.parent.y + image.height / 2 - scrollY);
 
 			stage.addEventListener (MouseEvent.MOUSE_MOVE, dragImage);
 		});
@@ -198,10 +207,53 @@ class KadabraCanvas extends Sprite {
 			removeChild(gizmoD);
 			removeChild(gizmoDR);
 		}
+
+		var containerPoint = new Point(scrollX, scrollY);
+		containerPoint = parent.localToGlobal(containerPoint);
+
+		if (event.stageX < containerPoint.x) {
+			//stage.window.warpMouse(Std.int(containerPoint.x), Std.int(event.stageY));
+			scrollSpeedX = (event.stageX - containerPoint.x) / 50;
+		}
+		else if (event.stageX > containerPoint.x + parent.parent.width){
+			//stage.window.warpMouse(Std.int(containerPoint.x + parent.parent.width), Std.int(event.stageY));
+			scrollSpeedX = (event.stageX - (containerPoint.x + parent.parent.width)) / 50;
+		}
+		else {
+			scrollSpeedX = 0;
+		}
+
+		if (event.stageY < containerPoint.y) {
+			//stage.window.warpMouse(Std.int(event.stageX), Std.int(containerPoint.y));
+			scrollSpeedY = (event.stageY - containerPoint.y) / 20;
+		}
+		else if (event.stageY > containerPoint.y + parent.parent.height){
+			//stage.window.warpMouse(Std.int(event.stageX), Std.int(containerPoint.y + parent.parent.height));
+			scrollSpeedY = (event.stageY - (containerPoint.y + parent.parent.height)) / 20;
+		}
+		else {
+			scrollSpeedY = 0;
+		}
+
 		var i = 0;
 		for (image in selectedImages){
 			image.x = event.stageX - offsets[i*2];
 			image.y = event.stageY - offsets[i*2+1];
+
+			if (image.x < -x) {
+				image.x = -x;
+			}
+			else if (image.x + image.width > background.width + x) {
+				image.x = background.width + x - image.width;
+			}
+
+			if (image.y < -y) {
+				image.y = -y;
+			}
+			else if (image.y + image.height > background.height + y) {
+				image.y = background.height + y - image.height;
+			}
+
 			++i;
 		}
 
@@ -531,9 +583,9 @@ class KadabraCanvas extends Sprite {
 			addChild(gizmoDR);
 
 			upOrigin = stage.height;
-			downOrigin = 0;
+			downOrigin = -800;
 			leftOrigin = stage.width;
-			rightOrigin = 0;
+			rightOrigin = -800;
 
 			for (image in selectedImages){	//determines bounds of the selection
 				if (image.y < upOrigin){
@@ -580,4 +632,8 @@ class KadabraCanvas extends Sprite {
 			gizmoDR.y = downOrigin;
 		}
 	}
+
+	function onMouseUp(e:MouseEvent) {
+        dragging = false;
+    }
 }
