@@ -56,6 +56,9 @@ class KadabraCanvas extends Sprite {
 	public var scrollSpeedX = 0.;
 	public var scrollSpeedY = 0.;
 
+	var scrollSpeedXDivisor = 10;
+	var scrollSpeedYDivisor = 5;
+
     public function new () {
 		
 		super ();
@@ -67,12 +70,11 @@ class KadabraCanvas extends Sprite {
 
     private function construct ():Void {
 
-		//graphics.beginFill(0xCCCCCC, 1);
-		//graphics.drawRect(-200,-200,600,600);
-		//graphics.endFill();
+		/////Canvas dimensions/////
+		///////////////////////////
 		background = new RectangleSkin();
-		background.width = 3000;
-		background.height = 2000;
+		background.width = 1920;
+		background.height = 1080;
 		background.fill = SolidColor(0xCCCCCC);
 		background.mouseEnabled = false;
 
@@ -213,11 +215,11 @@ class KadabraCanvas extends Sprite {
 
 		if (event.stageX < containerPoint.x) {
 			//stage.window.warpMouse(Std.int(containerPoint.x), Std.int(event.stageY));
-			scrollSpeedX = (event.stageX - containerPoint.x) / 50;
+			scrollSpeedX = (event.stageX - containerPoint.x) / scrollSpeedXDivisor;
 		}
 		else if (event.stageX > containerPoint.x + parent.parent.width){
 			//stage.window.warpMouse(Std.int(containerPoint.x + parent.parent.width), Std.int(event.stageY));
-			scrollSpeedX = (event.stageX - (containerPoint.x + parent.parent.width)) / 50;
+			scrollSpeedX = (event.stageX - (containerPoint.x + parent.parent.width)) / scrollSpeedXDivisor;
 		}
 		else {
 			scrollSpeedX = 0;
@@ -225,11 +227,11 @@ class KadabraCanvas extends Sprite {
 
 		if (event.stageY < containerPoint.y) {
 			//stage.window.warpMouse(Std.int(event.stageX), Std.int(containerPoint.y));
-			scrollSpeedY = (event.stageY - containerPoint.y) / 20;
+			scrollSpeedY = (event.stageY - containerPoint.y) / scrollSpeedYDivisor;
 		}
 		else if (event.stageY > containerPoint.y + parent.parent.height){
 			//stage.window.warpMouse(Std.int(event.stageX), Std.int(containerPoint.y + parent.parent.height));
-			scrollSpeedY = (event.stageY - (containerPoint.y + parent.parent.height)) / 20;
+			scrollSpeedY = (event.stageY - (containerPoint.y + parent.parent.height)) / scrollSpeedYDivisor;
 		}
 		else {
 			scrollSpeedY = 0;
