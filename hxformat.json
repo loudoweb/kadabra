@@ -18,7 +18,7 @@
   },
   "wrapping": {
     "methodChain": {
-      "defaultWrap": "onePerLineAfterFirst",
+      "defaultWrap": "fillLine",
       "defaultLocation": "afterLast",
       "rules": []
     },

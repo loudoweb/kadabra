@@ -1,3 +1,8 @@
+import panels.PropertiesPanel;
+import panels.HierarchyPanel;
+import utils.KadabraUtils;
+import utils.UIFactory;
+import panels.ToolPanel;
 import feathers.events.FeathersEvent;
 import feathers.events.ScrollEvent;
 import feathers.controls.HScrollBar;
@@ -27,31 +32,31 @@ import feathers.controls.Application;
 import feathers.controls.Label;
 import openfl.Assets;
 
-class MainKadabra extends Application {
-
+class MainKadabra extends Application
+{
 	var panel:LayoutGroup;
 	var box:HDividedBox;
 	var canvasContainer:CanvasContainer;
 
-	public function new() {
+	public function new()
+	{
 		super();
 
-		//crash logs system
-		
-		var unique_id:String = SessionData.generateID("kadabra_"); 
-		var crashDumper = new CrashDumper(unique_id); 
+		// init fonts
+		KadabraUtils.initFonts("assets/fonts/Roboto-Regular.ttf");
 
-		//application
+		// crash logs system
 
-		var darkSKin = new RectangleSkin();
-		darkSKin.fill = SolidColor(0x262626);//0x262626 333333 404040
+		var unique_id:String = SessionData.generateID("kadabra_");
+		var crashDumper = new CrashDumper(unique_id);
+
+		// application
 
 		var semiDarkSkin = new RectangleSkin();
 		semiDarkSkin.fill = SolidColor(0x333333);
 
 		var greySkin = new RectangleSkin();
 		semiDarkSkin.fill = SolidColor(0x404040);
-
 
 		var vLayout = new VerticalLayout();
 		vLayout.horizontalAlign = JUSTIFY;
@@ -61,8 +66,7 @@ class MainKadabra extends Application {
 		panel.layout = vLayout;
 		panel.width = stage.stageWidth;
 		panel.height = stage.stageHeight;
-
-		panel.addChild(createHeader(darkSKin));
+		panel.addChild(UIFactory.createHeader(stage.application.meta.get("name"), "icon", 24));
 		panel.addChild(createMainBoxes(semiDarkSkin));
 
 		addChild(panel);
@@ -72,54 +76,25 @@ class MainKadabra extends Application {
 		stage.addEventListener(Event.ENTER_FRAME, onUpdate);
 	}
 
-	function createHeader(skin:RectangleSkin):LayoutGroup
-	{
-		var layout = new HorizontalLayout();
-		layout.horizontalAlign = JUSTIFY;
-
-		var header = new LayoutGroup();
-		header.variant = LayoutGroup.VARIANT_TOOL_BAR;
-		header.height = 30;
-		header.backgroundSkin = skin;
-		header.layout = layout;
-		//new HorizontalLayoutData(100, 50);
-		//header.autoSizeMode = STAGE;
-		var label = new Label();
-		label.text = "Kadabra";
-		label.textFormat = new TextFormat(Assets.getFont("assets/fonts/Roboto-Regular.ttf").fontName, 20, 0xFFFFFF);
-		header.addChild(label);
-
-		return header;
-	}
-
 	function createMainBoxes(skin:RectangleSkin):HDividedBox
 	{
 		box = new HDividedBox();
-		box.height = stage.stageHeight - 30;
+		box.height = stage.stageHeight - KadabraUtils.HEADER_THICKNESS;
 		box.backgroundSkin = skin;
-		
+
 		var rect = new RectangleSkin();
-		rect.fill = SolidColor(0xCCCCCC);
+		rect.fill = KadabraUtils.SCENE_FILL;
 		rect.height = 2500;
 		rect.width = 5000;
 		rect.mouseEnabled = false;
 
-		var tool = new LayoutGroup();
-		tool.layout = new VerticalLayout();
-		tool.width = 60;
-		tool.minWidth = 60;
+		var tool = new ToolPanel();
 
-		var hierarchy = new TreeView();
-		var hierarchyData = new ArrayHierarchicalCollection();
-		hierarchy.dataProvider = hierarchyData;
-		hierarchy.width = 60;
-		hierarchy.minWidth = 60;
-		
+		var hierarchy = new HierarchyPanel();
+
 		canvasContainer = new CanvasContainer();
-		
-		var properties = new LayoutGroup();
-		properties.width = 300;
-		properties.minWidth = 300;
+
+		var properties = new PropertiesPanel();
 
 		box.addChild(tool);
 		box.addChild(hierarchy);
@@ -133,11 +108,11 @@ class MainKadabra extends Application {
 	{
 		panel.width = stage.stageWidth;
 		panel.height = stage.stageHeight;
-		box.height = stage.stageHeight - 30;
+		box.height = stage.stageHeight - KadabraUtils.HEADER_THICKNESS;
 	}
 
 	function onUpdate(e:Event):Void
 	{
-		//stage.window.x, stage.window.y; //pour bouger window avec borderless false
+		// stage.window.x, stage.window.y; //pour bouger window avec borderless false
 	}
 }
