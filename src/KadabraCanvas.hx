@@ -56,8 +56,8 @@ class KadabraCanvas extends Sprite {
 	public var scrollSpeedX = 0.;
 	public var scrollSpeedY = 0.;
 
-	var scrollSpeedXDivisor = 10;
-	var scrollSpeedYDivisor = 5;
+	inline static var scrollSpeedXDivisor = 10;
+	inline static var scrollSpeedYDivisor = 5;
 
     public function new () {
 		
