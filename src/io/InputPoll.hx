@@ -23,7 +23,7 @@ class InputPoll
 
 	public static var onMouseDown:Event<MouseEvent->Void>;
 	public static var onMouseUp:Event<MouseEvent->Void>;
-	public static var onMouseWheel:Event<Float->Void>;
+	public static var onMouseWheel:Event<MouseEvent->Void>;
 
 	public static var onKeyDown:Event<KKey->Void>;
 	public static var onKeyUp:Event<KKey->Void>;
@@ -53,7 +53,7 @@ class InputPoll
 
 		onMouseDown = new Event<MouseEvent->Void>();
 		onMouseUp = new Event<MouseEvent->Void>();
-		onMouseWheel = new Event<Float->Void>();
+		onMouseWheel = new Event<MouseEvent->Void>();
 
 		onKeyDown = new Event<KKey->Void>();
 		onKeyUp = new Event<KKey->Void>();
@@ -68,7 +68,7 @@ class InputPoll
 		_stage.addEventListener(MouseEvent.RIGHT_MOUSE_UP, _onMouseUp);
 
 		_stage.addEventListener(MouseEvent.RELEASE_OUTSIDE, _onMouseLeave);
-		_stage.addEventListener(MouseEvent.MOUSE_WHEEL, _onMouseWheel, false, 1);
+		_stage.addEventListener(MouseEvent.MOUSE_WHEEL, _onMouseWheel, true, 10);
 
 		_stage.addEventListener(KeyboardEvent.KEY_DOWN, _onKeyDown);
 		_stage.addEventListener(KeyboardEvent.KEY_UP, _onKeyUp);
@@ -146,8 +146,7 @@ class InputPoll
 		var key = null;
 		if (_keys.exists(e.keyCode))
 		{
-			_keys.get(e.keyCode)
-				.down();
+			_keys.get(e.keyCode).down();
 		} else
 		{
 			_keys.set(e.keyCode, new KKey(e.keyCode, e.charCode));
@@ -158,8 +157,7 @@ class InputPoll
 	{
 		if (_keys.exists(e.keyCode))
 		{
-			_keys.get(e.keyCode)
-				.up();
+			_keys.get(e.keyCode).up();
 		} else
 		{
 			_keys.set(e.keyCode, new KKey(e.keyCode, e.charCode));
@@ -224,7 +222,7 @@ class InputPoll
 		e.preventDefault();
 		_isWheeling = true;
 		wheel = e.delta;
-		onMouseWheel.dispatch(wheel);
+		onMouseWheel.dispatch(e);
 	}
 }
 
