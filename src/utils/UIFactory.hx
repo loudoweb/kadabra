@@ -1,5 +1,6 @@
 package utils;
 
+import feathers.skins.UnderlineSkin;
 import feathers.skins.RectangleSkin;
 import feathers.controls.Label;
 import feathers.controls.LayoutGroup;
@@ -9,7 +10,7 @@ class UIFactory
 {
 	static public function createHeader(title:String, ?icon:String, ?iconSize:Int):LayoutGroup
 	{
-		var skin = new RectangleSkin(KadabraUtils.HEADER_FILL);
+		var skin = new UnderlineSkin(KadabraUtils.HEADER_FILL, KadabraUtils.HEADER_BORDER);
 		var layout = new HorizontalLayout();
 		layout.horizontalAlign = JUSTIFY;
 		var header = new LayoutGroup();

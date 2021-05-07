@@ -43,7 +43,7 @@ class MainKadabra extends Application
 	{
 		super();
 
-		//init InputPoll
+		// init InputPoll
 		InputPoll.init(stage);
 
 		// init fonts
@@ -88,7 +88,7 @@ class MainKadabra extends Application
 
 		var rect = new RectangleSkin();
 		rect.fill = KadabraUtils.SCENE_FILL;
-		rect.height = 2500;
+		rect.height = 2160;
 		rect.width = 5000;
 		rect.mouseEnabled = false;
 

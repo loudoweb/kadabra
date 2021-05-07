@@ -11,7 +11,7 @@ class HierarchyPanel extends TreeView
 		super();
 		var hierarchyData = new ArrayHierarchicalCollection();
 		dataProvider = hierarchyData;
-		width = 60;
+		width = 180;
 		minWidth = 180;
 		maxWidth = 800;
 

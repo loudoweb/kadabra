@@ -33,9 +33,9 @@ class ToolPanel extends LayoutGroup
 		_layout.horizontalAlign = CENTER;
 		_layout.gap = 18;
 		layout = _layout;
-		width = 45;
-		minWidth = 45;
-		maxWidth = 60;
+		width = 50;
+		minWidth = 50;
+		maxWidth = 50;
 
 		addChild(UIFactory.createHeader("Tools"));
 
