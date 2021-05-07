@@ -1,3 +1,4 @@
+import io.InputPoll;
 import panels.PropertiesPanel;
 import panels.HierarchyPanel;
 import utils.KadabraUtils;
@@ -41,6 +42,9 @@ class MainKadabra extends Application
 	public function new()
 	{
 		super();
+
+		//init InputPoll
+		InputPoll.init(stage);
 
 		// init fonts
 		KadabraUtils.initFonts("assets/fonts/Roboto-Regular.ttf");
@@ -114,5 +118,6 @@ class MainKadabra extends Application
 	function onUpdate(e:Event):Void
 	{
 		// stage.window.x, stage.window.y; //pour bouger window avec borderless false
+		InputPoll.update();
 	}
 }

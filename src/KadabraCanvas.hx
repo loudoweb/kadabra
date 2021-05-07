@@ -1,5 +1,4 @@
 import openfl.ui.Mouse;
-import hl.UI.Window;
 import openfl.ui.MouseCursor;
 import lime.ui.MouseCursor;
 import feathers.controls.ScrollContainer;

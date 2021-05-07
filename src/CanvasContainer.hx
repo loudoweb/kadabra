@@ -1,3 +1,5 @@
+import openfl.ui.Keyboard;
+import io.InputPoll;
 import openfl.events.MouseEvent;
 import openfl.ui.Mouse;
 import openfl.events.Event;
@@ -7,14 +9,17 @@ import feathers.controls.ScrollContainer;
 
 class CanvasContainer extends ScrollContainer {
 
+    var rect:RectangleSkin;
     public var canvas:KadabraCanvas;
+
+    var zoomValue = 1.;
 
     public function new() {
         super();
 
         canvas = new KadabraCanvas();
 
-        var rect = new RectangleSkin();
+        rect = new RectangleSkin();
 		rect.fill = SolidColor(0x505050);
 
         if (canvas.background.width < 800) {
@@ -46,9 +51,9 @@ class CanvasContainer extends ScrollContainer {
 
         addEventListener(ScrollEvent.SCROLL_COMPLETE, scrollUpdate);
         addEventListener(Event.ENTER_FRAME, scrollAuto);
+
+        InputPoll.onMouseWheel.add(zoom);
     }
-
-
 
     function scrollUpdate(e:ScrollEvent):Void
     {
@@ -94,6 +99,68 @@ class CanvasContainer extends ScrollContainer {
 
             canvas.scrollX = scrollX;
             canvas.scrollY = scrollY;
+        }
+    }
+
+    function zoom(wheel:Float) {
+        if (InputPoll.isKeyDown(Keyboard.CONTROL)){
+            if (rect.width >= width - scrollBarY.width && rect.width >= height - scrollBarX.height) {
+                var newZoomValue = zoomValue + (wheel / 100);
+                if (newZoomValue <= 2) {
+                    canvas.x *= (newZoomValue / zoomValue);
+                    canvas.y *= (newZoomValue / zoomValue);
+                    zoomValue = newZoomValue;
+                    rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+                }
+            }
+
+            var contentWidth = width;
+            if (maxScrollY > 0) {
+                contentWidth -= scrollBarY.width;
+            }
+            if (rect.width < contentWidth) {
+                var newZoomValue = contentWidth * zoomValue / rect.width;
+                canvas.x *= (newZoomValue / zoomValue);
+                canvas.y *= (newZoomValue / zoomValue);
+                zoomValue = newZoomValue;
+                rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+            }
+
+            var contentHeight = height;
+            if (maxScrollX > 0) {
+                contentHeight -= scrollBarX.height;
+            }
+            if (rect.height < contentHeight) {
+                var newZoomValue = contentHeight * zoomValue / rect.height;
+                canvas.x *= (newZoomValue / zoomValue);
+                canvas.y *= (newZoomValue / zoomValue);
+                zoomValue = newZoomValue;
+                rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+            }
+        }
+    }
+
+    function resetZoom() {
+        canvas.x /= zoomValue;
+        canvas.y /= zoomValue;
+        zoomValue = 1.;
+        rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+    }
+
+    function fitZoom() {
+        if (rect.width < rect.height){
+            var newZoomValue = (width - scrollBarY.width) * zoomValue / rect.width;
+            canvas.x *= (newZoomValue / zoomValue);
+            canvas.y *= (newZoomValue / zoomValue);
+            zoomValue = newZoomValue;
+            rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+        }
+        else {
+            var newZoomValue = (height - scrollBarX.height) * zoomValue / rect.height;
+            canvas.x *= (newZoomValue / zoomValue);
+            canvas.y *= (newZoomValue / zoomValue);
+            zoomValue = newZoomValue;
+            rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
         }
     }
 
