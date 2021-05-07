@@ -27,6 +27,17 @@
 				"$haxe-trace"
 			],
 			"label": "lime: run (active configuration)"
+		},
+		{
+			"type": "lime",
+			"command": "test",
+			"problemMatcher": [
+				"$haxe-absolute",
+				"$haxe",
+				"$haxe-error",
+				"$haxe-trace"
+			],
+			"label": "lime: test (active configuration)"
 		}
 	]
 }

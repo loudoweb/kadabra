@@ -22,7 +22,7 @@
 	<haxelib name="native-clipboard"/>
 
 	
-	
+	<template path="assets/html/index.html" rename="index.html" if="html5"/>
 
 	<section if="cpp">
 		<haxelib name="hxcpp-debug-server"/>
