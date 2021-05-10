@@ -17,7 +17,7 @@ class KadabraUtils
 	public static var HEADER_FILL = SolidColor(0x262626);
 	public static var CANVAS_FILL = SolidColor(0x333333);
 	public static var WINDOW_FILL = SolidColor(0x404040);
-	public static var SCENE_FILL = SolidColor(0x808080);
+	public static var SCENE_FILL = SolidColor(0xCCCCCC);
 
 	public static var HEADER_BORDER = LineStyle.SolidColor(2, KADABRA_COLOR);
 

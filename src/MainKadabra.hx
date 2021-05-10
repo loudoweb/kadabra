@@ -1,3 +1,4 @@
+import panels.Footer;
 import io.InputPoll;
 import panels.PropertiesPanel;
 import panels.HierarchyPanel;
@@ -73,6 +74,8 @@ class MainKadabra extends Application
 		panel.addChild(UIFactory.createHeader(stage.application.meta.get("name"), "icon", 24));
 		panel.addChild(createMainBoxes(semiDarkSkin));
 
+		panel.addChild(new Footer());
+
 		addChild(panel);
 
 		stage.addEventListener(Event.RESIZE, onResize);
@@ -83,14 +86,8 @@ class MainKadabra extends Application
 	function createMainBoxes(skin:RectangleSkin):HDividedBox
 	{
 		box = new HDividedBox();
-		box.height = stage.stageHeight - KadabraUtils.HEADER_THICKNESS;
+		box.height = stage.stageHeight - KadabraUtils.HEADER_THICKNESS * 2;
 		box.backgroundSkin = skin;
-
-		var rect = new RectangleSkin();
-		rect.fill = KadabraUtils.SCENE_FILL;
-		rect.height = 2160;
-		rect.width = 5000;
-		rect.mouseEnabled = false;
 
 		var tool = new ToolPanel();
 
@@ -112,7 +109,7 @@ class MainKadabra extends Application
 	{
 		panel.width = stage.stageWidth;
 		panel.height = stage.stageHeight;
-		box.height = stage.stageHeight - KadabraUtils.HEADER_THICKNESS;
+		box.height = stage.stageHeight - KadabraUtils.HEADER_THICKNESS * 2;
 	}
 
 	function onUpdate(e:Event):Void

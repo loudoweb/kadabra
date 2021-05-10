@@ -1,3 +1,4 @@
+import utils.KadabraUtils;
 import openfl.ui.Keyboard;
 import io.InputPoll;
 import openfl.events.MouseEvent;
@@ -22,7 +23,7 @@ class CanvasContainer extends ScrollContainer
 		canvas = new KadabraCanvas();
 
 		rect = new RectangleSkin();
-		rect.fill = SolidColor(0x505050);
+		rect.fill = KadabraUtils.CANVAS_FILL;
 
 		if (canvas.background.width < 800)
 		{
