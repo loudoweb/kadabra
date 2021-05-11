@@ -24,6 +24,7 @@ class InputPoll
 	public static var onMouseDown:Event<MouseEvent->Void>;
 	public static var onMouseUp:Event<MouseEvent->Void>;
 	public static var onMouseWheel:Event<MouseEvent->Void>;
+	public static var onMiddleMouseDown:Event<MouseEvent->Void>;
 
 	public static var onKeyDown:Event<KKey->Void>;
 	public static var onKeyUp:Event<KKey->Void>;
@@ -54,6 +55,7 @@ class InputPoll
 		onMouseDown = new Event<MouseEvent->Void>();
 		onMouseUp = new Event<MouseEvent->Void>();
 		onMouseWheel = new Event<MouseEvent->Void>();
+		onMiddleMouseDown = new Event<MouseEvent->Void>();
 
 		onKeyDown = new Event<KKey->Void>();
 		onKeyUp = new Event<KKey->Void>();
@@ -174,6 +176,7 @@ class InputPoll
 			case MouseEvent.MIDDLE_MOUSE_DOWN:
 				isMouseMiddleDown = true;
 				isMouseMiddleJustPressed = true;
+				onMiddleMouseDown.dispatch(e);
 			default:
 				isMouseDown = true;
 				isMouseJustPressed = true;

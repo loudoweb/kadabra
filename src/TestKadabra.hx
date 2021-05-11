@@ -25,32 +25,33 @@ import openfl.Assets;
 import openfl.text.TextFieldAutoSize;
 import format.SVG;
 
-class MainKadabra extends Application {
-
+class MainKadabra extends Application
+{
 	var panel:LayoutGroup;
 
-	public function new() {
+	public function new()
+	{
 		super();
 
-		//crash logs system
-		
-		var unique_id:String = SessionData.generateID("kadabra_"); 
-		var crashDumper = new CrashDumper(unique_id); 
+		// crash logs system
 
-		//test clipboard
+		var unique_id:String = SessionData.generateID("kadabra_");
+		var crashDumper = new CrashDumper(unique_id);
+
+		// test clipboard
 		trace("count");
-		//trace(KadabraClipboard.count());
+		// trace(KadabraClipboard.count());
 		trace('has');
-		//trace(KadabraClipboard.has(EClipboard.TYPE_HTML));
+		// trace(KadabraClipboard.has(EClipboard.TYPE_HTML));
 		trace("image");
 		var bd = KadabraClipboard.getImage();
-		if(bd != null)
+		if (bd != null)
 		{
-				addChild(new Bitmap(bd));
+			addChild(new Bitmap(bd));
 		}
 		trace('html');
 		var html = KadabraClipboard.getString(TYPE_HTML);
-		if(html != "")
+		if (html != "")
 		{
 			trace(html);
 			var tf = new TextField();
@@ -66,27 +67,26 @@ class MainKadabra extends Application {
 		trace('svg');
 		var svgstr = KadabraClipboard.getString(TYPE_SVG);
 		trace(svgstr);
-		if(svgstr != "")
+		if (svgstr != "")
 		{
-			var svg = new SVG (svgstr);
+			var svg = new SVG(svgstr);
 			var spr = new Sprite();
 			spr.x = 200;
 			spr.y = 400;
-			svg.render (spr.graphics);
+			svg.render(spr.graphics);
 			addChild(spr);
 		}
 
-		//application
+		// application
 
 		var darkSKin = new RectangleSkin();
-		darkSKin.fill = SolidColor(0x262626);//0x262626 333333 404040
+		darkSKin.fill = SolidColor(0x262626); // 0x262626 333333 404040
 
 		var semiDarkSkin = new RectangleSkin();
 		semiDarkSkin.fill = SolidColor(0x333333);
 
 		var greySkin = new RectangleSkin();
 		semiDarkSkin.fill = SolidColor(0x404040);
-
 
 		var vLayout = new VerticalLayout();
 		vLayout.horizontalAlign = JUSTIFY;
@@ -117,8 +117,8 @@ class MainKadabra extends Application {
 		header.height = 30;
 		header.backgroundSkin = skin;
 		header.layout = layout;
-		//new HorizontalLayoutData(100, 50);
-		//header.autoSizeMode = STAGE;
+		// new HorizontalLayoutData(100, 50);
+		// header.autoSizeMode = STAGE;
 		var label = new Label();
 		label.text = "Kadabra";
 		label.textFormat = new TextFormat(Assets.getFont("assets/fonts/Roboto-Regular.ttf").fontName, 20, 0xFFFFFF);
@@ -128,26 +128,25 @@ class MainKadabra extends Application {
 	}
 
 	function createMainBoxes(skin:RectangleSkin):HDividedBox
-		{
-			var box = new HDividedBox();
+	{
+		var box = new HDividedBox();
 
-			var tool = new LayoutGroup();
-			tool.layout = new VerticalLayout();
-			tool.width = 60;
-			
-			var canvas = new Sprite();
-			
-			var properties = new LayoutGroup();
-			properties.width = 300;
-			properties.minWidth = 300;
-			
+		var tool = new LayoutGroup();
+		tool.layout = new VerticalLayout();
+		tool.width = 60;
 
-			box.addChild(tool);
-			box.addChild(canvas);
-			box.addChild(properties);
+		var canvas = new Sprite();
 
-			return box;
-		}
+		var properties = new LayoutGroup();
+		properties.width = 300;
+		properties.minWidth = 300;
+
+		box.addChild(tool);
+		box.addChild(canvas);
+		box.addChild(properties);
+
+		return box;
+	}
 
 	function onResize(e:Event):Void
 	{
@@ -157,6 +156,6 @@ class MainKadabra extends Application {
 
 	function onUpdate(e:Event):Void
 	{
-		//stage.window.x, stage.window.y; //pour bouger window avec borderless false
+		// stage.window.x, stage.window.y; //pour bouger window avec borderless false
 	}
 }

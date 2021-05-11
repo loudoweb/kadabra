@@ -1,3 +1,4 @@
+import openfl.geom.Point;
 import utils.KadabraUtils;
 import openfl.ui.Keyboard;
 import io.InputPoll;
@@ -10,70 +11,77 @@ import feathers.controls.ScrollContainer;
 
 class CanvasContainer extends ScrollContainer
 {
-	var rect:RectangleSkin;
+	var canvas:RectangleSkin;
 
-	public var canvas:KadabraCanvas;
+	public var scene:KadabraScene;
 
 	var zoomValue = 1.;
+
+	var movePoint:Point;
+
+	inline static var minZoomValue = 4.;
+	inline static var moveSpeedDivisor = 50.;
 
 	public function new()
 	{
 		super();
 
-		canvas = new KadabraCanvas();
+		scene = new KadabraScene();
 
-		rect = new RectangleSkin();
-		rect.fill = KadabraUtils.CANVAS_FILL;
+		canvas = new RectangleSkin();
+		canvas.fill = KadabraUtils.CANVAS_FILL;
 
-		if (canvas.background.width < 800)
+		if (scene.background.width < 800)
 		{
-			rect.width = canvas.background.width * 3;
-			canvas.x = canvas.background.width;
+			canvas.width = scene.background.width * 3;
+			scene.x = scene.background.width;
 		}
 		else
 		{
-			rect.width = canvas.background.width + 1600;
-			canvas.x = 800;
+			canvas.width = scene.background.width + 1600;
+			scene.x = 800;
 		}
 
-		if (canvas.background.height < 800)
+		if (scene.background.height < 800)
 		{
-			rect.height = canvas.background.height * 3;
-			canvas.y = canvas.background.height;
+			canvas.height = scene.background.height * 3;
+			scene.y = scene.background.height;
 		}
 		else
 		{
-			rect.height = canvas.background.height + 1600;
-			canvas.y = 800;
+			canvas.height = scene.background.height + 1600;
+			scene.y = 800;
 		}
-		rect.mouseEnabled = false;
+		canvas.mouseEnabled = false;
 
-		addChild(rect);
 		addChild(canvas);
-		scrollX = canvas.x;
-		scrollY = canvas.y;
+		addChild(scene);
+		scrollX = scene.x;
+		scrollY = scene.y;
 
-		canvas.scrollX = scrollX;
-		canvas.scrollY = scrollY;
+		scene.scrollX = scrollX;
+		scene.scrollY = scrollY;
 
 		addEventListener(ScrollEvent.SCROLL_COMPLETE, scrollUpdate);
 		addEventListener(Event.ENTER_FRAME, scrollAuto);
 
 		InputPoll.onMouseWheel.add(zoom);
+
+		InputPoll.onMiddleMouseDown.add(setMovePoint);
 	}
 
 	function scrollUpdate(e:ScrollEvent):Void
 	{
-		canvas.scrollX = scrollX;
-		canvas.scrollY = scrollY;
+		scene.scrollX = scrollX;
+		scene.scrollY = scrollY;
 	}
 
 	function scrollAuto(e:Event):Void
 	{
-		if (canvas.dragging)
+		if (scene.dragging)
 		{
-			scrollX += canvas.scrollSpeedX;
-			scrollY += canvas.scrollSpeedY;
+			scrollX += scene.scrollSpeedX;
+			scrollY += scene.scrollSpeedY;
 
 			if (scrollX < 0)
 			{
@@ -86,10 +94,10 @@ class CanvasContainer extends ScrollContainer
 			else
 			{
 				var i = 0;
-				for (image in canvas.selectedImages)
+				for (image in scene.selectedImages)
 				{
-					image.x += canvas.scrollSpeedX;
-					canvas.offsets[i * 2] -= canvas.scrollSpeedX;
+					image.x += scene.scrollSpeedX;
+					scene.offsets[i * 2] -= scene.scrollSpeedX;
 					++i;
 				}
 			}
@@ -105,16 +113,24 @@ class CanvasContainer extends ScrollContainer
 			else
 			{
 				var i = 0;
-				for (image in canvas.selectedImages)
+				for (image in scene.selectedImages)
 				{
-					image.y += canvas.scrollSpeedY;
-					canvas.offsets[i * 2 + 1] -= canvas.scrollSpeedY;
+					image.y += scene.scrollSpeedY;
+					scene.offsets[i * 2 + 1] -= scene.scrollSpeedY;
 					++i;
 				}
 			}
 
-			canvas.scrollX = scrollX;
-			canvas.scrollY = scrollY;
+			scene.scrollX = scrollX;
+			scene.scrollY = scrollY;
+		}
+		if (InputPoll.isMouseMiddleDown)
+		{
+			var mousePoint = new Point(mouseX, mouseY);
+			mousePoint = localToGlobal(mousePoint);
+
+			// scroller.restrictedScrollX += (mousePoint.x - movePoint.x) / moveSpeedDivisor;
+			// scroller.restrictedScrollY += (mousePoint.y - movePoint.y) / moveSpeedDivisor;
 		}
 	}
 
@@ -123,78 +139,114 @@ class CanvasContainer extends ScrollContainer
 		if (InputPoll.isKeyDown(Keyboard.CONTROL))
 		{
 			e.stopImmediatePropagation();
-			if (rect.width >= width - scrollBarY.width && rect.width >= height - scrollBarX.height)
+
+			var canvasMousePoint = new Point(e.stageX, e.stageY);
+			canvasMousePoint = canvas.globalToLocal(canvasMousePoint);
+
+			var containerMousePoint = new Point(e.stageX, e.stageY);
+			containerMousePoint = globalToLocal(containerMousePoint);
+
+			if (canvas.width >= width - scrollBarY.width && canvas.width >= height - scrollBarX.height)
 			{
 				var newZoomValue = zoomValue + (e.delta / 100);
-				if (newZoomValue <= 2)
+				if (newZoomValue <= minZoomValue)
 				{
-					canvas.x *= (newZoomValue / zoomValue);
-					canvas.y *= (newZoomValue / zoomValue);
+					scene.x *= (newZoomValue / zoomValue);
+					scene.y *= (newZoomValue / zoomValue);
 					zoomValue = newZoomValue;
-					rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+					canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
 				}
 			}
 
-			var contentWidth = width;
+			var visibleWidth = width;
 			if (maxScrollY > 0)
 			{
-				contentWidth -= scrollBarY.width;
+				visibleWidth -= scrollBarY.width;
 			}
-			if (rect.width < contentWidth)
+			if (canvas.width < visibleWidth)
 			{
-				var newZoomValue = contentWidth * zoomValue / rect.width;
-				canvas.x *= (newZoomValue / zoomValue);
-				canvas.y *= (newZoomValue / zoomValue);
+				var newZoomValue = visibleWidth * zoomValue / canvas.width;
+				scene.x *= (newZoomValue / zoomValue);
+				scene.y *= (newZoomValue / zoomValue);
 				zoomValue = newZoomValue;
-				rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+				canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
 			}
 
-			var contentHeight = height;
+			var visibleHeight = height;
 			if (maxScrollX > 0)
 			{
-				contentHeight -= scrollBarX.height;
+				visibleHeight -= scrollBarX.height;
 			}
-			if (rect.height < contentHeight)
+			if (canvas.height < visibleHeight)
 			{
-				var newZoomValue = contentHeight * zoomValue / rect.height;
-				canvas.x *= (newZoomValue / zoomValue);
-				canvas.y *= (newZoomValue / zoomValue);
+				var newZoomValue = visibleHeight * zoomValue / canvas.height;
+				scene.x *= (newZoomValue / zoomValue);
+				scene.y *= (newZoomValue / zoomValue);
 				zoomValue = newZoomValue;
-				rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+				canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
 			}
+
+			restrictedScrollX = canvasMousePoint.x * zoomValue - containerMousePoint.x;
+			restrictedScrollY = canvasMousePoint.y * zoomValue - containerMousePoint.y;
 		}
 	}
 
 	function resetZoom()
 	{
-		canvas.x /= zoomValue;
-		canvas.y /= zoomValue;
+		scene.x /= zoomValue;
+		scene.y /= zoomValue;
 		zoomValue = 1.;
-		rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+		canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
 	}
 
-	function fitZoom()
+	function fitCanvas()
 	{
-		if (rect.width < rect.height)
+		if (canvas.width < canvas.height)
 		{
-			var newZoomValue = (width - scrollBarY.width) * zoomValue / rect.width;
-			canvas.x *= (newZoomValue / zoomValue);
-			canvas.y *= (newZoomValue / zoomValue);
+			var newZoomValue = (width - scrollBarY.width) * zoomValue / canvas.width;
+			scene.x *= (newZoomValue / zoomValue);
+			scene.y *= (newZoomValue / zoomValue);
 			zoomValue = newZoomValue;
-			rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+			canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
 		}
 		else
 		{
-			var newZoomValue = (height - scrollBarX.height) * zoomValue / rect.height;
-			canvas.x *= (newZoomValue / zoomValue);
-			canvas.y *= (newZoomValue / zoomValue);
+			var newZoomValue = (height - scrollBarX.height) * zoomValue / canvas.height;
+			scene.x *= (newZoomValue / zoomValue);
+			scene.y *= (newZoomValue / zoomValue);
 			zoomValue = newZoomValue;
-			rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+			canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
 		}
 	}
 
-	function onMouseUp(e:MouseEvent)
+	function fitScene()
 	{
-		canvas.dragging = false;
+		if (scene.width < scene.height)
+		{
+			var newZoomValue = (width - scrollBarY.width) * zoomValue / scene.width;
+			scene.x *= (newZoomValue / zoomValue);
+			scene.y *= (newZoomValue / zoomValue);
+			zoomValue = newZoomValue;
+			canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
+
+			scrollX = maxScrollX / 2;
+			scrollY = scene.y;
+		}
+		else
+		{
+			var newZoomValue = (height - scrollBarX.height) * zoomValue / scene.height;
+			scene.x *= (newZoomValue / zoomValue);
+			scene.y *= (newZoomValue / zoomValue);
+			zoomValue = newZoomValue;
+			canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
+
+			scrollX = scene.x;
+			scrollY = maxScrollY / 2;
+		}
+	}
+
+	function setMovePoint(e:MouseEvent)
+	{
+		movePoint = new Point(e.stageX, e.stageY);
 	}
 }
