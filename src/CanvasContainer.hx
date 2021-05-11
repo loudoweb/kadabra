@@ -189,14 +189,23 @@ class CanvasContainer extends ScrollContainer
 			restrictedScrollX = canvasMousePoint.x * zoomValue - containerMousePoint.x;
 			restrictedScrollY = canvasMousePoint.y * zoomValue - containerMousePoint.y;
 		}
+		else if (InputPoll.isKeyDown(Keyboard.R))
+		{
+			e.stopImmediatePropagation();
+			// temp ?
+			resetZoom();
+		}
 	}
 
 	function resetZoom()
 	{
-		scene.x /= zoomValue;
-		scene.y /= zoomValue;
 		zoomValue = 1.;
-		canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
+		canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = 1.;
+		scene.x = (canvas.width - scene.width) * 0.5;
+		scene.y = (canvas.height - scene.height) * 0.5;
+		refreshViewPortBoundsForLayout();
+		restrictedScrollX = maxScrollX / 2;
+		restrictedScrollY = maxScrollY / 2;
 	}
 
 	function fitCanvas()
