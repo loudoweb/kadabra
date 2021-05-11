@@ -1,3 +1,4 @@
+import lime.ui.Window.TDropFile;
 import utils.KadabraUtils;
 import openfl.ui.Mouse;
 import openfl.ui.MouseCursor;
@@ -124,15 +125,20 @@ class KadabraCanvas extends Sprite
 		stage.addEventListener(MouseEvent.RELEASE_OUTSIDE, onMouseUp);
 	}
 
-	private function dragNDrop(path:String)
+	private function dragNDrop(file:TDropFile)
 	{
+		if (file.type != "png")
+		{
+			trace("file is not a png: " + file);
+			return;
+		}
 		// Add an image object when an image file is dropped in the window
-		BitmapData.loadFromFile(path).onComplete(function(bitmapdata)
+		BitmapData.loadFromFile(file.path).onComplete(function(bitmapdata)
 		{
 			var image = new KadabraImage(bitmapdata);
 			imageContainer.addChild(image);
-			var splitPath = path.split("\\");
-			image.name = splitPath[splitPath.length - 1];
+			image.name = file.name;
+			trace(file.name);
 
 			for (image in selectedImages)
 			{
