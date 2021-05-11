@@ -1,3 +1,4 @@
+import openfl.geom.Point;
 import utils.KadabraUtils;
 import openfl.ui.Keyboard;
 import io.InputPoll;
@@ -123,54 +124,49 @@ class CanvasContainer extends ScrollContainer
 		if (InputPoll.isKeyDown(Keyboard.CONTROL))
 		{
 			e.stopImmediatePropagation();
-			if (rect.width >= width - scrollBarY.width && rect.width >= height - scrollBarX.height)
-			{
-				var newZoomValue = zoomValue + (e.delta / 100);
-				if (newZoomValue <= 2)
-				{
-					canvas.x *= (newZoomValue / zoomValue);
-					canvas.y *= (newZoomValue / zoomValue);
-					zoomValue = newZoomValue;
-					rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
-				}
-			}
 
-			var contentWidth = width;
-			if (maxScrollY > 0)
-			{
-				contentWidth -= scrollBarY.width;
-			}
-			if (rect.width < contentWidth)
-			{
-				var newZoomValue = contentWidth * zoomValue / rect.width;
-				canvas.x *= (newZoomValue / zoomValue);
-				canvas.y *= (newZoomValue / zoomValue);
-				zoomValue = newZoomValue;
-				rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
-			}
+			// mouse position
+			var pt = new Point(e.stageX, e.stageY);
+			pt = rect.globalToLocal(pt);
 
-			var contentHeight = height;
-			if (maxScrollX > 0)
-			{
-				contentHeight -= scrollBarX.height;
-			}
-			if (rect.height < contentHeight)
-			{
-				var newZoomValue = contentHeight * zoomValue / rect.height;
-				canvas.x *= (newZoomValue / zoomValue);
-				canvas.y *= (newZoomValue / zoomValue);
-				zoomValue = newZoomValue;
-				rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
-			}
+			// zoom
+			var preZoom = zoomValue;
+			zoomValue += (e.delta / 1000);
+			// max zoom
+			if (zoomValue > 4)
+				zoomValue = 4;
+			// min zoom
+			if (zoomValue < width / rect.width * rect.scaleX)
+				zoomValue = width / rect.width * rect.scaleX;
+
+			// scale
+			canvas.scaleX = canvas.scaleY = rect.scaleX = rect.scaleY = zoomValue;
+
+			// center scene
+			canvas.x = (rect.width - canvas.width) * 0.5;
+			canvas.y = (rect.height - canvas.height) * 0.5;
+			// scroll to mouse position
+			refreshViewPortBoundsForLayout();
+			restrictedScrollX += (pt.x * zoomValue - pt.x * preZoom);
+			restrictedScrollY += (pt.y * zoomValue - pt.y * preZoom);
+			refreshScrollRect();
+		} else if (InputPoll.isKeyDown(Keyboard.R))
+		{
+			e.stopImmediatePropagation();
+			// temp ?
+			resetZoom();
 		}
 	}
 
 	function resetZoom()
 	{
-		canvas.x /= zoomValue;
-		canvas.y /= zoomValue;
 		zoomValue = 1.;
-		rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
+		rect.scaleX = rect.scaleY = canvas.scaleX = canvas.scaleY = 1.;
+		canvas.x = (rect.width - canvas.width) * 0.5;
+		canvas.y = (rect.height - canvas.height) * 0.5;
+		refreshViewPortBoundsForLayout();
+		restrictedScrollX = maxScrollX / 2;
+		restrictedScrollY = maxScrollY / 2;
 	}
 
 	function fitZoom()
