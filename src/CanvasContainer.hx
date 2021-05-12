@@ -129,8 +129,8 @@ class CanvasContainer extends ScrollContainer
 			var mousePoint = new Point(mouseX, mouseY);
 			mousePoint = localToGlobal(mousePoint);
 
-			// scroller.restrictedScrollX += (mousePoint.x - movePoint.x) / moveSpeedDivisor;
-			// scroller.restrictedScrollY += (mousePoint.y - movePoint.y) / moveSpeedDivisor;
+			scroller.restrictedScrollX += (mousePoint.x - movePoint.x) / moveSpeedDivisor;
+			scroller.restrictedScrollY += (mousePoint.y - movePoint.y) / moveSpeedDivisor;
 		}
 	}
 
@@ -186,6 +186,7 @@ class CanvasContainer extends ScrollContainer
 				canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
 			}
 
+			// zoom towards mouse position
 			restrictedScrollX = canvasMousePoint.x * zoomValue - containerMousePoint.x;
 			restrictedScrollY = canvasMousePoint.y * zoomValue - containerMousePoint.y;
 		}
@@ -210,6 +211,7 @@ class CanvasContainer extends ScrollContainer
 
 	function fitCanvas()
 	{
+		// if width < height, the canvas fits the container in width
 		if (canvas.width < canvas.height)
 		{
 			var newZoomValue = (width - scrollBarY.width) * zoomValue / canvas.width;
@@ -218,6 +220,7 @@ class CanvasContainer extends ScrollContainer
 			zoomValue = newZoomValue;
 			canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
 		}
+		// if height < width, the canvas fits the container in height
 		else
 		{
 			var newZoomValue = (height - scrollBarX.height) * zoomValue / canvas.height;
@@ -230,6 +233,7 @@ class CanvasContainer extends ScrollContainer
 
 	function fitScene()
 	{
+		// if width < height, the scene fits the container in width
 		if (scene.width < scene.height)
 		{
 			var newZoomValue = (width - scrollBarY.width) * zoomValue / scene.width;
@@ -241,6 +245,7 @@ class CanvasContainer extends ScrollContainer
 			scrollX = maxScrollX / 2;
 			scrollY = scene.y;
 		}
+		// if height < width, the scene fits the container in height
 		else
 		{
 			var newZoomValue = (height - scrollBarX.height) * zoomValue / scene.height;
