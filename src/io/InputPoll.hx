@@ -60,7 +60,7 @@ class InputPoll
 		onKeyDown = new Event<KKey->Void>();
 		onKeyUp = new Event<KKey->Void>();
 
-		_stage.addEventListener(MouseEvent.MOUSE_DOWN, _onMouseDown);
+		_stage.addEventListener(MouseEvent.MOUSE_DOWN, _onMouseDown, true);
 		_stage.addEventListener(MouseEvent.MOUSE_UP, _onMouseUp);
 
 		_stage.addEventListener(MouseEvent.MIDDLE_MOUSE_DOWN, _onMouseDown);

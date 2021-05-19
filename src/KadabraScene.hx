@@ -1,3 +1,5 @@
+import openfl.geom.Transform;
+import io.InputPoll;
 import utils.KadabraUtils;
 import openfl.ui.Mouse;
 import openfl.ui.MouseCursor;
@@ -35,25 +37,16 @@ class KadabraScene extends Sprite
 	var gizmoOffsetX:Float;
 	var gizmoOffsetY:Float;
 
-	public var selectedImages:List<KadabraImage>;
+	public var selectedAssets:List<KadabraImage>;
 
 	public var dragging = false;
+
+	var transformTool:TransformTool;
 
 	var upOrigin:Float;
 	var downOrigin:Float;
 	var leftOrigin:Float;
 	var rightOrigin:Float;
-	var gizmosHeight:Float;
-	var gizmosWidth:Float;
-
-	var gizmoUL:Gizmo;
-	var gizmoU:Gizmo;
-	var gizmoUR:Gizmo;
-	var gizmoL:Gizmo;
-	var gizmoR:Gizmo;
-	var gizmoDL:Gizmo;
-	var gizmoD:Gizmo;
-	var gizmoDR:Gizmo;
 
 	var currentGizmo:Gizmo;
 
@@ -100,25 +93,17 @@ class KadabraScene extends Sprite
 		imageContainer = new Sprite();
 
 		offsets = [];
-		selectedImages = new List<KadabraImage>();
+		selectedAssets = new List<KadabraImage>();
 
-		gizmoDL = new Gizmo(1, -1);
-		gizmoD = new Gizmo(1, 0);
-		gizmoDR = new Gizmo(1, 1);
-		gizmoUL = new Gizmo(-1, -1);
-		gizmoU = new Gizmo(-1, 0);
-		gizmoUR = new Gizmo(-1, 1);
-		gizmoL = new Gizmo(0, -1);
-		gizmoR = new Gizmo(0, 1);
-
-		// opaqueBackground = 0x7F0000;
+		transformTool = new TransformTool();
 	}
 
 	private function onAddedtoStage(event:Event)
 	{
 		stage.window.onDropFile.add(dragNDrop);
-		stage.addEventListener(MouseEvent.MOUSE_DOWN, startDragging, true);
-		stage.addEventListener(MouseEvent.MOUSE_UP, stopDragging);
+		InputPoll.onMouseDown.add(startDragging);
+		InputPoll.onMouseUp.add(stopDragging);
+
 		stage.addEventListener(MouseEvent.CLICK, selectImage, true);
 
 		stage.addEventListener(MouseEvent.RELEASE_OUTSIDE, onMouseUp);
@@ -134,13 +119,13 @@ class KadabraScene extends Sprite
 			var splitPath = path.split("\\");
 			image.name = splitPath[splitPath.length - 1];
 
-			for (image in selectedImages)
+			for (image in selectedAssets)
 			{
 				image.unselect();
 			}
-			selectedImages.clear();
-			selectedImages.add(image);
-			selectedImages.last().select();
+			selectedAssets.clear();
+			selectedAssets.add(image);
+			selectedAssets.last().select();
 
 			var imagePoint = new Point(stage.mouseX, stage.mouseY);
 			imagePoint = globalToLocal(imagePoint);
@@ -149,8 +134,8 @@ class KadabraScene extends Sprite
 			image.y = imagePoint.y;
 
 			offsets = [];
-			offsets.push(x + parent.parent.x + image.width / 2 - scrollX);
-			offsets.push(y + parent.parent.parent.y + image.height / 2 - scrollY);
+			offsets.push((x + parent.parent.x + image.width / 2 - scrollX) * scaleX);
+			offsets.push((y + parent.parent.parent.y + image.height / 2 - scrollY) * scaleY);
 
 			stage.addEventListener(MouseEvent.MOUSE_MOVE, dragImage);
 		});
@@ -160,33 +145,33 @@ class KadabraScene extends Sprite
 	{
 		if (Std.is(event.target, KadabraImage))
 		{
-			if (selectedImages.isEmpty())
+			if (selectedAssets.isEmpty())
 			{
-				selectedImages.add(cast(event.target, KadabraImage));
-				selectedImages.last().select();
+				selectedAssets.add(cast(event.target, KadabraImage));
+				selectedAssets.last().select();
 			}
 
 			if (!event.shiftKey)
 			{ // if Shift is pressed while clicking an image, it is added to the selection
-				if ((selectedImages.filter(function(image)
+				if ((selectedAssets.filter(function(image)
 				{
 					return (image == cast(event.target, KadabraImage));
 				})).isEmpty())
 				{
-					for (image in selectedImages)
+					for (image in selectedAssets)
 					{
 						image.unselect();
 					}
-					selectedImages.clear();
-					selectedImages.add(cast(event.target, KadabraImage));
-					selectedImages.last().select();
+					selectedAssets.clear();
+					selectedAssets.add(cast(event.target, KadabraImage));
+					selectedAssets.last().select();
 				}
 			}
 
-			for (image in selectedImages)
+			for (image in selectedAssets)
 			{
-				offsets.push(event.stageX - image.x);
-				offsets.push(event.stageY - image.y);
+				offsets.push(event.stageX / scaleX - image.x);
+				offsets.push(event.stageY / scaleY - image.y);
 			}
 
 			stage.addEventListener(MouseEvent.MOUSE_MOVE, dragImage);
@@ -194,8 +179,8 @@ class KadabraScene extends Sprite
 		else if (Std.is(event.target, Gizmo))
 		{
 			currentGizmo = cast(event.target, Gizmo);
-			gizmoOffsetX = event.stageX - currentGizmo.x;
-			gizmoOffsetY = event.stageY - currentGizmo.y;
+			gizmoOffsetX = event.stageX / scaleX - (currentGizmo.x + transformTool.x);
+			gizmoOffsetY = event.stageY / scaleY - (currentGizmo.y + transformTool.y);
 
 			stage.addEventListener(MouseEvent.MOUSE_MOVE, scale);
 		}
@@ -207,7 +192,7 @@ class KadabraScene extends Sprite
 		stage.removeEventListener(MouseEvent.MOUSE_MOVE, scale);
 		offsets = [];
 
-		for (image in selectedImages)
+		for (image in selectedAssets)
 		{
 			image.defaultHeight = image.height;
 			image.defaultWidth = image.width;
@@ -224,14 +209,7 @@ class KadabraScene extends Sprite
 		{
 			dragging = true;
 
-			removeChild(gizmoUL);
-			removeChild(gizmoU);
-			removeChild(gizmoUR);
-			removeChild(gizmoL);
-			removeChild(gizmoR);
-			removeChild(gizmoDL);
-			removeChild(gizmoD);
-			removeChild(gizmoDR);
+			removeChild(transformTool);
 		}
 
 		var containerPoint = new Point(scrollX, scrollY);
@@ -268,10 +246,10 @@ class KadabraScene extends Sprite
 		}
 
 		var i = 0;
-		for (image in selectedImages)
+		for (image in selectedAssets)
 		{
-			image.x = event.stageX - offsets[i * 2];
-			image.y = event.stageY - offsets[i * 2 + 1];
+			image.x = event.stageX / scaleX - offsets[i * 2];
+			image.y = event.stageY / scaleY - offsets[i * 2 + 1];
 
 			if (image.x < -x)
 			{
@@ -297,350 +275,233 @@ class KadabraScene extends Sprite
 		event.updateAfterEvent();
 	}
 
+	function upSide(x:Float, y:Float, a:Point, b:Point)
+	{
+		return ((b.y - a.y) * (x - a.x) - (b.x - a.x) * (y - a.y)) >= 0;
+	}
+
 	private function scale(event:MouseEvent):Void
 	{
-		if (currentGizmo.up)
-		{
-			scaleUp(event);
-			var scaleUpDone = scaleDone;
-			if (currentGizmo.left)
-			{
-				scaleLeft(event);
+		var coef = currentGizmo.vertical * currentGizmo.horizontal;
+		if (coef != 0)
+		{ // if coef != 0, currentGizmo is a corner
+			if (!event.altKey)
+			{ // preserving proportions
+				var aPoint = new Point(0, 0);
+				var bPoint = new Point(0, 0);
+				if (coef < 0)
+				{
+					aPoint = new Point(transformTool.x, transformTool.y + transformTool.gizmosHeight);
+					bPoint = new Point(transformTool.x + transformTool.gizmosWidth, transformTool.y);
+				}
+				else if (coef > 0)
+				{
+					aPoint = new Point(transformTool.x, transformTool.y);
+					bPoint = new Point(transformTool.x + transformTool.gizmosWidth,
+						transformTool.y + transformTool.gizmosHeight);
+				}
+
+				if (currentGizmo.vertical < 0)
+				{ // is an Up gizmo
+					if (!upSide(event.stageX / scaleX - gizmoOffsetX, event.stageY / scaleY - gizmoOffsetY, aPoint,
+						bPoint))
+					{
+						var oldUpOrigin = upOrigin;
+						upOrigin = event.stageY / scaleY - gizmoOffsetY;
+
+						if (upOrigin >= downOrigin)
+						{ // minimum scale
+							upOrigin = downOrigin - 0.1;
+						}
+
+						if (currentGizmo.horizontal < 0)
+						{ // is a Left gizmo
+							leftOrigin += (upOrigin - oldUpOrigin) / ratio;
+						}
+						else if (currentGizmo.horizontal > 0)
+						{ // is a Right gizmo
+							rightOrigin -= (upOrigin - oldUpOrigin) / ratio;
+						}
+					}
+					else
+					{
+						if (currentGizmo.horizontal < 0)
+						{ // is a Left gizmo
+							var oldLeftOrigin = leftOrigin;
+							leftOrigin = event.stageX / scaleX - gizmoOffsetX;
+
+							if (leftOrigin >= rightOrigin)
+							{ // minimum scale
+								leftOrigin = rightOrigin - 0.1;
+							}
+
+							upOrigin += (leftOrigin - oldLeftOrigin) * ratio;
+						}
+						else if (currentGizmo.horizontal > 0)
+						{ // is a Right gizmo
+							var oldRightOrigin = rightOrigin;
+							rightOrigin = event.stageX / scaleX - gizmoOffsetX;
+
+							if (rightOrigin <= leftOrigin)
+							{ // minimum scale
+								rightOrigin = leftOrigin + 0.1;
+							}
+
+							upOrigin += (oldRightOrigin - rightOrigin) * ratio;
+						}
+					}
+				}
+				else if (currentGizmo.vertical > 0)
+				{ // is a Down gizmo
+					if (upSide(event.stageX / scaleX - gizmoOffsetX, event.stageY / scaleY - gizmoOffsetY, aPoint,
+						bPoint))
+					{
+						var oldDownOrigin = downOrigin;
+						downOrigin = event.stageY / scaleY - gizmoOffsetY;
+
+						if (downOrigin <= upOrigin)
+						{ // minimum scale
+							downOrigin = upOrigin + 0.1;
+						}
+
+						if (currentGizmo.horizontal < 0)
+						{ // is a Left gizmo
+							leftOrigin += (oldDownOrigin - downOrigin) / ratio;
+						}
+						else if (currentGizmo.horizontal > 0)
+						{ // is a Right gizmo
+							rightOrigin -= (oldDownOrigin - downOrigin) / ratio;
+						}
+					}
+					else
+					{
+						if (currentGizmo.horizontal < 0)
+						{ // is a Left gizmo
+							var oldLeftOrigin = leftOrigin;
+							leftOrigin = event.stageX / scaleX - gizmoOffsetX;
+
+							if (leftOrigin >= rightOrigin)
+							{ // minimum scale
+								leftOrigin = rightOrigin - 0.1;
+							}
+
+							downOrigin -= (leftOrigin - oldLeftOrigin) * ratio;
+						}
+						else if (currentGizmo.horizontal > 0)
+						{ // is a Right gizmo
+							var oldRightOrigin = rightOrigin;
+							rightOrigin = event.stageX / scaleX - gizmoOffsetX;
+
+							if (rightOrigin <= leftOrigin)
+							{ // minimum scale
+								rightOrigin = leftOrigin + 0.1;
+							}
+
+							downOrigin -= (oldRightOrigin - rightOrigin) * ratio;
+						}
+					}
+				}
 			}
-			else if (currentGizmo.right)
-			{
-				scaleRight(event);
-			}
-			if (!scaleUpDone && !scaleDone)
-			{ // force scaleUp if cursor is in the image
-				forceCalcul = true;
-				scaleUp(event);
-				scaleDone = false;
+			else
+			{ // not preserving proportions
+				if (currentGizmo.vertical < 0)
+				{ // is an Up gizmo
+					upOrigin = event.stageY / scaleY - gizmoOffsetY;
+
+					if (upOrigin >= downOrigin)
+					{
+						upOrigin = downOrigin - 0.1;
+					}
+				}
+				else if (currentGizmo.vertical > 0)
+				{ // is a Down gizmo
+					downOrigin = event.stageY / scaleY - gizmoOffsetY;
+
+					if (downOrigin <= upOrigin)
+					{
+						downOrigin = upOrigin + 0.1;
+					}
+				}
+
+				if (currentGizmo.horizontal < 0)
+				{ // is a Left gizmo
+					leftOrigin = event.stageX / scaleX - gizmoOffsetX;
+
+					if (leftOrigin >= rightOrigin)
+					{
+						leftOrigin = rightOrigin - 0.1;
+					}
+				}
+				else if (currentGizmo.horizontal > 0)
+				{ // is a Right gizmo
+					rightOrigin = event.stageX / scaleX - gizmoOffsetX;
+
+					if (rightOrigin <= leftOrigin)
+					{
+						rightOrigin = leftOrigin + 0.1;
+					}
+				}
 			}
 		}
-		else if (currentGizmo.down)
-		{
-			scaleDown(event);
-			var scaleDownDone = scaleDone;
-			if (currentGizmo.left)
-			{
-				scaleLeft(event);
+		else
+		{ // gizmo has only one direction
+			if (currentGizmo.vertical < 0)
+			{ // is an Up gizmo
+				upOrigin = event.stageY / scaleY - gizmoOffsetY;
+
+				if (upOrigin >= downOrigin)
+				{
+					upOrigin = downOrigin - 0.1;
+				}
 			}
-			else if (currentGizmo.right)
-			{
-				scaleRight(event);
+			else if (currentGizmo.vertical > 0)
+			{ // is a Down gizmo
+				downOrigin = event.stageY / scaleY - gizmoOffsetY;
+
+				if (downOrigin <= upOrigin)
+				{
+					downOrigin = upOrigin + 0.1;
+				}
 			}
-			if (!scaleDownDone && !scaleDone)
-			{ // force scaleDown if cursor is in the image
-				forceCalcul = true;
-				scaleDown(event);
-				scaleDone = false;
+			else if (currentGizmo.horizontal < 0)
+			{ // is a Left gizmo
+				leftOrigin = event.stageX / scaleX - gizmoOffsetX;
+
+				if (leftOrigin >= rightOrigin)
+				{
+					leftOrigin = rightOrigin - 0.1;
+				}
+			}
+			else if (currentGizmo.horizontal > 0)
+			{ // is a Down gizmo
+				rightOrigin = event.stageX / scaleX - gizmoOffsetX;
+
+				if (rightOrigin <= leftOrigin)
+				{
+					rightOrigin = leftOrigin + 0.1;
+				}
 			}
 		}
-		else if (currentGizmo.left)
+
+		var oldGizmosHeight = transformTool.gizmosHeight;
+		var oldGizmosWidth = transformTool.gizmosWidth;
+		transformTool.gizmosHeight = downOrigin - upOrigin;
+		transformTool.gizmosWidth = rightOrigin - leftOrigin;
+
+		transformTool.updateGizmos();
+
+		transformTool.x = leftOrigin;
+		transformTool.y = upOrigin;
+
+		for (image in selectedAssets)
 		{
-			scaleLeft(event);
-		}
-		else if (currentGizmo.right)
-		{
-			scaleRight(event);
+			image.height *= transformTool.gizmosHeight / oldGizmosHeight;
+			image.y = upOrigin;
+			image.width *= transformTool.gizmosWidth / oldGizmosWidth;
+			image.x = leftOrigin;
 		}
 
 		event.updateAfterEvent();
-	}
-
-	private function scaleUp(event:MouseEvent):Void
-	{
-		if (!event.altKey)
-		{
-			if (currentGizmo.left || currentGizmo.right)
-			{
-				if (!scaleDone)
-				{
-					// if the cursor is at the left or right of the currentGizmo (depending on its left and right booleans), the Gizmo's position is determined by the cursor's Y coord
-					if (Math.abs(event.stageX
-						- gizmoOffsetX
-						- gizmoL.x
-						- gizmosWidth / 2) > Math.abs(currentGizmo.x - gizmoL.x - gizmosWidth / 2)
-						|| forceCalcul)
-					{
-						gizmosHeight = downOrigin - (event.stageY - gizmoOffsetY);
-
-						if (gizmosHeight <= 0)
-						{ // minimum Height
-							gizmosHeight = 0.01;
-						}
-
-						gizmoUL.y = gizmoU.y = gizmoUR.y = event.stageY - gizmoOffsetY;
-						gizmoL.y = gizmoR.y = (event.stageY - gizmoOffsetY) + gizmosHeight / 2;
-
-						gizmosWidth = gizmosHeight / ratio;
-						if (currentGizmo.left)
-						{
-							gizmoUL.x = gizmoL.x = gizmoDL.x = rightOrigin - gizmosWidth;
-							gizmoU.x = gizmoD.x = rightOrigin - gizmosWidth / 2;
-						}
-						else if (currentGizmo.right)
-						{
-							gizmoUR.x = gizmoR.x = gizmoDR.x = leftOrigin + gizmosWidth;
-							gizmoU.x = gizmoD.x = leftOrigin + gizmosWidth / 2;
-						}
-
-						scaleDone = true;
-						forceCalcul = false;
-					}
-				}
-				else
-				{
-					scaleDone = false;
-				}
-			}
-			else
-			{
-				gizmosHeight = downOrigin - (event.stageY - gizmoOffsetY);
-				gizmoUL.y = gizmoU.y = gizmoUR.y = event.stageY - gizmoOffsetY;
-				gizmoL.y = gizmoR.y = (event.stageY - gizmoOffsetY) + gizmosHeight / 2;
-			}
-		}
-		else
-		{
-			gizmosHeight = downOrigin - (event.stageY - gizmoOffsetY);
-			gizmoUL.y = gizmoU.y = gizmoUR.y = event.stageY - gizmoOffsetY;
-			gizmoL.y = gizmoR.y = (event.stageY - gizmoOffsetY) + gizmosHeight / 2;
-		}
-
-		if (gizmoU.y >= downOrigin)
-		{ // minimum scale
-			gizmosHeight = 0.01;
-			gizmoUL.y = gizmoU.y = gizmoUR.y = downOrigin - gizmosHeight;
-			gizmoL.y = gizmoR.y = downOrigin - gizmosHeight;
-		}
-
-		for (image in selectedImages)
-		{
-			image.height = image.defaultHeight * ((downOrigin - gizmoU.y) / (downOrigin - upOrigin));
-			image.y = gizmoU.y + (image.defaultY - upOrigin) * ((downOrigin - gizmoU.y) / (downOrigin - upOrigin));
-		}
-	}
-
-	private function scaleDown(event:MouseEvent):Void
-	{
-		if (!event.altKey)
-		{
-			if (currentGizmo.left || currentGizmo.right)
-			{
-				if (!scaleDone)
-				{
-					// if the cursor is at the left or right of the currentGizmo (depending on its left and right booleans), the Gizmo's position is determined by the cursor's Y coord
-					if (Math.abs(event.stageX
-						- gizmoOffsetX
-						- gizmoL.x
-						- gizmosWidth / 2) > Math.abs(currentGizmo.x - gizmoL.x - gizmosWidth / 2)
-						|| forceCalcul)
-					{
-						gizmosHeight = (event.stageY - gizmoOffsetY) - upOrigin;
-
-						if (gizmosHeight <= 0)
-						{ // minimum Height
-							gizmosHeight = 0.01;
-						}
-
-						gizmoDL.y = gizmoD.y = gizmoDR.y = event.stageY - gizmoOffsetY;
-						gizmoL.y = gizmoR.y = upOrigin + gizmosHeight / 2;
-
-						gizmosWidth = gizmosHeight / ratio;
-						if (currentGizmo.left)
-						{
-							gizmoUL.x = gizmoL.x = gizmoDL.x = rightOrigin - gizmosWidth;
-							gizmoU.x = gizmoD.x = rightOrigin - gizmosWidth / 2;
-						}
-						else if (currentGizmo.right)
-						{
-							gizmoUR.x = gizmoR.x = gizmoDR.x = leftOrigin + gizmosWidth;
-							gizmoU.x = gizmoD.x = leftOrigin + gizmosWidth / 2;
-						}
-
-						scaleDone = true;
-						forceCalcul = false;
-					}
-				}
-				else
-				{
-					scaleDone = false;
-				}
-			}
-			else
-			{
-				gizmosHeight = (event.stageY - gizmoOffsetY) - upOrigin;
-				gizmoDL.y = gizmoD.y = gizmoDR.y = event.stageY - gizmoOffsetY;
-				gizmoL.y = gizmoR.y = upOrigin + gizmosHeight / 2;
-			}
-		}
-		else
-		{
-			gizmosHeight = (event.stageY - gizmoOffsetY) - upOrigin;
-			gizmoDL.y = gizmoD.y = gizmoDR.y = event.stageY - gizmoOffsetY;
-			gizmoL.y = gizmoR.y = upOrigin + gizmosHeight / 2;
-		}
-
-		if (gizmoD.y <= upOrigin)
-		{ // minimum scale
-			gizmosHeight = 0.01;
-			gizmoDL.y = gizmoD.y = gizmoDR.y = upOrigin + gizmosHeight;
-			gizmoL.y = gizmoR.y = upOrigin + gizmosHeight;
-		}
-
-		for (image in selectedImages)
-		{
-			image.height = image.defaultHeight * ((gizmoD.y - upOrigin) / (downOrigin - upOrigin));
-			image.y = upOrigin + (image.defaultY - upOrigin) * ((gizmoD.y - upOrigin) / (downOrigin - upOrigin));
-		}
-	}
-
-	private function scaleLeft(event:MouseEvent):Void
-	{
-		if (!event.altKey)
-		{
-			if (currentGizmo.up || currentGizmo.down)
-			{
-				if (!scaleDone)
-				{
-					// if the cursor is abose or below the currentGizmo (depending on its up and down booleans), the Gizmo's position is determined by the cursor's X coord
-					if (Math.abs(event.stageY
-						- gizmoOffsetY
-						- gizmoU.y
-						- gizmosHeight / 2) >= Math.abs(currentGizmo.y - gizmoU.y - gizmosHeight / 2))
-					{
-						gizmosWidth = rightOrigin - (event.stageX - gizmoOffsetX);
-
-						if (gizmosWidth <= 0)
-						{ // minimum Width
-							gizmosWidth = 0.01;
-						}
-
-						gizmoUL.x = gizmoL.x = gizmoDL.x = event.stageX - gizmoOffsetX;
-						gizmoU.x = gizmoD.x = (event.stageX - gizmoOffsetX) + gizmosWidth / 2;
-
-						gizmosHeight = gizmosWidth * ratio;
-						if (currentGizmo.up)
-						{
-							gizmoUL.y = gizmoU.y = gizmoUR.y = downOrigin - gizmosHeight;
-							gizmoL.y = gizmoR.y = downOrigin - gizmosHeight / 2;
-						}
-						else if (currentGizmo.down)
-						{
-							gizmoDL.y = gizmoD.y = gizmoDR.y = upOrigin + gizmosHeight;
-							gizmoL.y = gizmoR.y = upOrigin + gizmosHeight / 2;
-						}
-
-						scaleDone = true;
-					}
-				}
-				else
-				{
-					scaleDone = false;
-				}
-			}
-			else
-			{
-				gizmosWidth = rightOrigin - (event.stageX - gizmoOffsetX);
-				gizmoUL.x = gizmoL.x = gizmoDL.x = event.stageX - gizmoOffsetX;
-				gizmoU.x = gizmoD.x = (event.stageX - gizmoOffsetX) + gizmosWidth / 2;
-			}
-		}
-		else
-		{
-			gizmosWidth = rightOrigin - (event.stageX - gizmoOffsetX);
-			gizmoUL.x = gizmoL.x = gizmoDL.x = event.stageX - gizmoOffsetX;
-			gizmoU.x = gizmoD.x = (event.stageX - gizmoOffsetX) + gizmosWidth / 2;
-		}
-
-		if (gizmoL.x >= rightOrigin)
-		{ // minimum scale
-			gizmosWidth = 0.01;
-			gizmoUL.x = gizmoL.x = gizmoDL.x = rightOrigin - gizmosWidth;
-			gizmoU.x = gizmoD.x = rightOrigin - gizmosWidth;
-		}
-
-		for (image in selectedImages)
-		{
-			image.width = image.defaultWidth * ((rightOrigin - gizmoL.x) / (rightOrigin - leftOrigin));
-			image.x = gizmoL.x
-				+ (image.defaultX - leftOrigin) * ((rightOrigin - gizmoL.x) / (rightOrigin - leftOrigin));
-		}
-	}
-
-	private function scaleRight(event:MouseEvent):Void
-	{
-		if (!event.altKey)
-		{
-			if (currentGizmo.up || currentGizmo.down)
-			{
-				if (!scaleDone)
-				{
-					// if the cursor is abose or below the currentGizmo (depending on its up and down booleans), the Gizmo's position is determined by the cursor's X coord
-					if (Math.abs(event.stageY
-						- gizmoOffsetY
-						- gizmoU.y
-						- gizmosHeight / 2) >= Math.abs(currentGizmo.y - gizmoU.y - gizmosHeight / 2))
-					{
-						gizmosWidth = (event.stageX - gizmoOffsetX) - leftOrigin;
-
-						if (gizmosWidth <= 0)
-						{ // minimum Width
-							gizmosWidth = 0.01;
-						}
-
-						gizmoUR.x = gizmoR.x = gizmoDR.x = event.stageX - gizmoOffsetX;
-						gizmoU.x = gizmoD.x = leftOrigin + gizmosWidth / 2;
-
-						gizmosHeight = gizmosWidth * ratio;
-						if (currentGizmo.up)
-						{
-							gizmoUL.y = gizmoU.y = gizmoUR.y = downOrigin - gizmosHeight;
-							gizmoL.y = gizmoR.y = downOrigin - gizmosHeight / 2;
-						}
-						else if (currentGizmo.down)
-						{
-							gizmoDL.y = gizmoD.y = gizmoDR.y = upOrigin + gizmosHeight;
-							gizmoL.y = gizmoR.y = upOrigin + gizmosHeight / 2;
-						}
-
-						scaleDone = true;
-					}
-				}
-				else
-				{
-					scaleDone = false;
-				}
-			}
-			else
-			{
-				gizmosWidth = (event.stageX - gizmoOffsetX) - leftOrigin;
-				gizmoUR.x = gizmoR.x = gizmoDR.x = event.stageX - gizmoOffsetX;
-				gizmoU.x = gizmoD.x = leftOrigin + gizmosWidth / 2;
-			}
-		}
-		else
-		{
-			gizmosWidth = (event.stageX - gizmoOffsetX) - leftOrigin;
-			gizmoUR.x = gizmoR.x = gizmoDR.x = event.stageX - gizmoOffsetX;
-			gizmoU.x = gizmoD.x = leftOrigin + gizmosWidth / 2;
-		}
-
-		if (gizmoR.x <= leftOrigin)
-		{ // minimum scale
-			gizmosWidth = 0.01;
-			gizmoUR.x = gizmoR.x = gizmoDR.x = leftOrigin + gizmosWidth;
-			gizmoU.x = gizmoD.x = leftOrigin + gizmosWidth;
-		}
-
-		for (image in selectedImages)
-		{
-			image.width = image.defaultWidth * ((gizmoR.x - leftOrigin) / (rightOrigin - leftOrigin));
-			image.x = leftOrigin
-				+ (image.defaultX - leftOrigin) * ((gizmoR.x - leftOrigin) / (rightOrigin - leftOrigin));
-		}
 	}
 
 	private function selectImage(event:MouseEvent):Void
@@ -653,28 +514,28 @@ class KadabraScene extends Sprite
 				{
 					if (!(cast(event.target, KadabraImage)).isSelected)
 					{
-						selectedImages.add(cast(event.target, KadabraImage));
-						selectedImages.last().select();
+						selectedAssets.add(cast(event.target, KadabraImage));
+						selectedAssets.last().select();
 					}
 				}
 				else
 				{
-					for (image in selectedImages)
+					for (image in selectedAssets)
 					{
 						image.unselect();
 					}
-					selectedImages.clear();
-					selectedImages.add(cast(event.target, KadabraImage));
-					selectedImages.last().select();
+					selectedAssets.clear();
+					selectedAssets.add(cast(event.target, KadabraImage));
+					selectedAssets.last().select();
 				}
 			}
 			else if (!Std.is(event.target, Gizmo))
 			{
-				for (image in selectedImages)
+				for (image in selectedAssets)
 				{
 					image.unselect();
 				}
-				selectedImages.clear();
+				selectedAssets.clear();
 			}
 			updateGizmos();
 		}
@@ -686,34 +547,20 @@ class KadabraScene extends Sprite
 
 	private function updateGizmos()
 	{ // puts gizmos on the corners and in the middle of the sides of the selection
-		if (selectedImages.isEmpty())
+		if (selectedAssets.isEmpty())
 		{
-			removeChild(gizmoUL);
-			removeChild(gizmoU);
-			removeChild(gizmoUR);
-			removeChild(gizmoL);
-			removeChild(gizmoR);
-			removeChild(gizmoDL);
-			removeChild(gizmoD);
-			removeChild(gizmoDR);
+			removeChild(transformTool);
 		}
 		else
 		{
-			addChild(gizmoUL);
-			addChild(gizmoU);
-			addChild(gizmoUR);
-			addChild(gizmoL);
-			addChild(gizmoR);
-			addChild(gizmoDL);
-			addChild(gizmoD);
-			addChild(gizmoDR);
+			addChild(transformTool);
 
 			upOrigin = stage.height;
 			downOrigin = -800;
 			leftOrigin = stage.width;
 			rightOrigin = -800;
 
-			for (image in selectedImages)
+			for (image in selectedAssets)
 			{ // determines bounds of the selection
 				if (image.y < upOrigin)
 				{
@@ -733,34 +580,15 @@ class KadabraScene extends Sprite
 				}
 			}
 
-			gizmosHeight = downOrigin - upOrigin;
-			gizmosWidth = rightOrigin - leftOrigin;
+			transformTool.gizmosHeight = downOrigin - upOrigin;
+			transformTool.gizmosWidth = rightOrigin - leftOrigin;
 
-			ratio = gizmosHeight / gizmosWidth;
+			ratio = transformTool.gizmosHeight / transformTool.gizmosWidth;
 
-			gizmoUL.x = leftOrigin;
-			gizmoUL.y = upOrigin;
+			transformTool.updateGizmos();
 
-			gizmoU.x = leftOrigin + gizmosWidth / 2;
-			gizmoU.y = upOrigin;
-
-			gizmoUR.x = rightOrigin;
-			gizmoUR.y = upOrigin;
-
-			gizmoL.x = leftOrigin;
-			gizmoL.y = upOrigin + gizmosHeight / 2;
-
-			gizmoR.x = rightOrigin;
-			gizmoR.y = upOrigin + gizmosHeight / 2;
-
-			gizmoDL.x = leftOrigin;
-			gizmoDL.y = downOrigin;
-
-			gizmoD.x = leftOrigin + gizmosWidth / 2;
-			gizmoD.y = downOrigin;
-
-			gizmoDR.x = rightOrigin;
-			gizmoDR.y = downOrigin;
+			transformTool.x = leftOrigin;
+			transformTool.y = upOrigin;
 		}
 	}
 

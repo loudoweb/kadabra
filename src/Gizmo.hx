@@ -2,38 +2,20 @@ import openfl.display.Sprite;
 
 class Gizmo extends Sprite
 {
-	public var up = false;
-	public var down = false;
-	public var left = false;
-	public var right = false;
+	public var vertical:Int;
+	public var horizontal:Int;
 
-	public function new(vertical:Int, horizontal:Int)
+	public function new(ver:Int, hor:Int)
 	{
 		super();
+
+		vertical = ver;
+		horizontal = hor;
 
 		// the different gizmos have different colors to identify them during debug
 		var rectColor = 0x7F007F;
 
-		if (horizontal > 0)
-		{
-			right = true;
-			rectColor -= 0x7F0000;
-		}
-		else if (horizontal < 0)
-		{
-			left = true;
-			rectColor += 0x7F0000;
-		}
-		if (vertical > 0)
-		{
-			down = true;
-			rectColor += 0x00007F;
-		}
-		else if (vertical < 0)
-		{
-			up = true;
-			rectColor -= 0x00007F;
-		}
+		rectColor += vertical * 0x00007F + horizontal * 0x7F0000;
 
 		mouseChildren = false;
 		buttonMode = true;

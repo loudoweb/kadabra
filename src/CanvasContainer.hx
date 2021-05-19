@@ -94,7 +94,7 @@ class CanvasContainer extends ScrollContainer
 			else
 			{
 				var i = 0;
-				for (image in scene.selectedImages)
+				for (image in scene.selectedAssets)
 				{
 					image.x += scene.scrollSpeedX;
 					scene.offsets[i * 2] -= scene.scrollSpeedX;
@@ -113,7 +113,7 @@ class CanvasContainer extends ScrollContainer
 			else
 			{
 				var i = 0;
-				for (image in scene.selectedImages)
+				for (image in scene.selectedAssets)
 				{
 					image.y += scene.scrollSpeedY;
 					scene.offsets[i * 2 + 1] -= scene.scrollSpeedY;
