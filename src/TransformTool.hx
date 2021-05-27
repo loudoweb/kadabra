@@ -14,6 +14,10 @@ class TransformTool extends Sprite
 	var gizmoD:Gizmo;
 	var gizmoDR:Gizmo;
 
+	var rotationGizmo:Gizmo;
+
+	public var pivot:Pivot;
+
 	public function new()
 	{
 		super();
@@ -27,6 +31,10 @@ class TransformTool extends Sprite
 		gizmoL = new Gizmo(0, -1);
 		gizmoR = new Gizmo(0, 1);
 
+		rotationGizmo = new Gizmo(0, 0);
+
+		pivot = new Pivot();
+
 		addChild(gizmoUL);
 		addChild(gizmoU);
 		addChild(gizmoUR);
@@ -35,6 +43,10 @@ class TransformTool extends Sprite
 		addChild(gizmoDL);
 		addChild(gizmoD);
 		addChild(gizmoDR);
+
+		addChild(rotationGizmo);
+
+		addChild(pivot);
 	}
 
 	public function updateGizmos()
@@ -55,5 +67,20 @@ class TransformTool extends Sprite
 
 		gizmoDR.x = gizmosWidth;
 		gizmoDR.y = gizmosHeight;
+
+		rotationGizmo.x = gizmosWidth / 2;
+		rotationGizmo.y = -50;
+
+		pivot.updatePos(gizmosWidth, gizmosHeight);
+
+		graphics.clear();
+		graphics.lineStyle(1, 0, 1);
+		graphics.moveTo(0, 0);
+		graphics.lineTo(gizmosWidth, 0);
+		graphics.lineTo(gizmosWidth, gizmosHeight);
+		graphics.lineTo(0, gizmosHeight);
+		graphics.lineTo(0, 0);
+		graphics.moveTo(gizmosWidth / 2, 0);
+		graphics.lineTo(gizmosWidth / 2, -50);
 	}
 }

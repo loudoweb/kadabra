@@ -37,9 +37,17 @@ class KadabraScene extends Sprite
 	var gizmoOffsetX:Float;
 	var gizmoOffsetY:Float;
 
+	var defaultX:Float;
+	var defaultY:Float;
+
+	var radianRotation:Float;
+	var cosinus:Float;
+	var sinus:Float;
+
 	public var selectedAssets:List<KadabraImage>;
 
 	public var dragging = false;
+	public var scaling = false;
 
 	var transformTool:TransformTool;
 
@@ -52,6 +60,8 @@ class KadabraScene extends Sprite
 
 	var scaleDone = false;
 	var forceCalcul = false;
+
+	var defaultAngle:Float;
 
 	var ratio:Float;
 
@@ -127,6 +137,10 @@ class KadabraScene extends Sprite
 			selectedAssets.add(image);
 			selectedAssets.last().select();
 
+			radianRotation = selectedAssets.first().rotation * Math.PI / 180;
+			cosinus = Math.cos(radianRotation);
+			sinus = Math.sin(radianRotation);
+
 			var imagePoint = new Point(stage.mouseX, stage.mouseY);
 			imagePoint = globalToLocal(imagePoint);
 
@@ -151,22 +165,27 @@ class KadabraScene extends Sprite
 				selectedAssets.last().select();
 			}
 
-			if (!event.shiftKey)
-			{ // if Shift is pressed while clicking an image, it is added to the selection
-				if ((selectedAssets.filter(function(image)
+			// if (!event.shiftKey)
+			// { // if Shift is pressed while clicking an image, it is added to the selection
+			if ((selectedAssets.filter(function(image)
+			{
+				return (image == cast(event.target, KadabraImage));
+			})).isEmpty())
+			{
+				for (image in selectedAssets)
 				{
-					return (image == cast(event.target, KadabraImage));
-				})).isEmpty())
-				{
-					for (image in selectedAssets)
-					{
-						image.unselect();
-					}
-					selectedAssets.clear();
-					selectedAssets.add(cast(event.target, KadabraImage));
-					selectedAssets.last().select();
+					trace("startDragging unselect");
+					image.unselect();
 				}
+				selectedAssets.clear();
+				selectedAssets.add(cast(event.target, KadabraImage));
+				selectedAssets.last().select();
+
+				radianRotation = selectedAssets.first().rotation * Math.PI / 180;
+				cosinus = Math.cos(radianRotation);
+				sinus = Math.sin(radianRotation);
 			}
+			// }
 
 			for (image in selectedAssets)
 			{
@@ -179,10 +198,31 @@ class KadabraScene extends Sprite
 		else if (Std.is(event.target, Gizmo))
 		{
 			currentGizmo = cast(event.target, Gizmo);
-			gizmoOffsetX = event.stageX / scaleX - (currentGizmo.x + transformTool.x);
-			gizmoOffsetY = event.stageY / scaleY - (currentGizmo.y + transformTool.y);
+			var xValue = currentGizmo.x;
+			var yValue = currentGizmo.y;
+
+			if (currentGizmo.horizontal == 0 && currentGizmo.vertical == 0)
+			{ // gizmo offsets depend on pivot coordinates only during rotation
+				xValue -= transformTool.pivot.x;
+				yValue -= transformTool.pivot.y;
+			}
+
+			gizmoOffsetX = event.stageX / scaleX - ((xValue) * cosinus - (yValue) * sinus);
+			gizmoOffsetY = event.stageY / scaleY - ((xValue) * sinus + (yValue) * cosinus);
+
+			defaultAngle = Math.atan((currentGizmo.x
+				- transformTool.pivot.x) / (currentGizmo.y - transformTool.pivot.y));
+			defaultX = selectedAssets.first().x + (transformTool.pivot.x * cosinus - transformTool.pivot.y * sinus);
+			defaultY = selectedAssets.first().y + (transformTool.pivot.x * sinus + transformTool.pivot.y * cosinus);
 
 			stage.addEventListener(MouseEvent.MOUSE_MOVE, scale);
+		}
+		else if (Std.is(event.target, Pivot))
+		{
+			gizmoOffsetX = event.stageX / scaleX - (transformTool.pivot.x * cosinus - transformTool.pivot.y * sinus);
+			gizmoOffsetY = event.stageY / scaleY - (transformTool.pivot.x * sinus + transformTool.pivot.y * cosinus);
+
+			stage.addEventListener(MouseEvent.MOUSE_MOVE, dragPivot);
 		}
 	}
 
@@ -190,17 +230,21 @@ class KadabraScene extends Sprite
 	{
 		stage.removeEventListener(MouseEvent.MOUSE_MOVE, dragImage);
 		stage.removeEventListener(MouseEvent.MOUSE_MOVE, scale);
+		stage.removeEventListener(MouseEvent.MOUSE_MOVE, dragPivot);
 		offsets = [];
 
-		for (image in selectedAssets)
+		if (!selectedAssets.isEmpty())
 		{
-			image.defaultHeight = image.height;
-			image.defaultWidth = image.width;
-			image.defaultX = image.x;
-			image.defaultY = image.y;
-		}
+			for (image in selectedAssets)
+			{
+				image.defaultHeight = image.height;
+				image.defaultWidth = image.width;
+				image.defaultX = image.x;
+				image.defaultY = image.y;
+			}
 
-		updateGizmos();
+			updateGizmos();
+		}
 	}
 
 	private function dragImage(event:MouseEvent):Void
@@ -209,7 +253,7 @@ class KadabraScene extends Sprite
 		{
 			dragging = true;
 
-			removeChild(transformTool);
+			selectedAssets.first().removeChild(transformTool);
 		}
 
 		var containerPoint = new Point(scrollX, scrollY);
@@ -282,6 +326,11 @@ class KadabraScene extends Sprite
 
 	private function scale(event:MouseEvent):Void
 	{
+		if (!scaling)
+		{
+			scaling = true;
+		}
+
 		var coef = currentGizmo.vertical * currentGizmo.horizontal;
 		if (coef != 0)
 		{ // if coef != 0, currentGizmo is a corner
@@ -289,16 +338,17 @@ class KadabraScene extends Sprite
 			{ // preserving proportions
 				var aPoint = new Point(0, 0);
 				var bPoint = new Point(0, 0);
+
 				if (coef < 0)
 				{
-					aPoint = new Point(transformTool.x, transformTool.y + transformTool.gizmosHeight);
-					bPoint = new Point(transformTool.x + transformTool.gizmosWidth, transformTool.y);
+					aPoint = new Point(transformTool.gizmosHeight * sinus, transformTool.gizmosHeight * cosinus);
+					bPoint = new Point(transformTool.gizmosWidth * cosinus, transformTool.gizmosWidth * sinus);
 				}
 				else if (coef > 0)
 				{
 					aPoint = new Point(transformTool.x, transformTool.y);
-					bPoint = new Point(transformTool.x + transformTool.gizmosWidth,
-						transformTool.y + transformTool.gizmosHeight);
+					bPoint = new Point(transformTool.gizmosWidth * cosinus + transformTool.gizmosHeight * sinus,
+						transformTool.gizmosHeight * cosinus - transformTool.gizmosWidth * sinus);
 				}
 
 				if (currentGizmo.vertical < 0)
@@ -307,16 +357,21 @@ class KadabraScene extends Sprite
 						bPoint))
 					{
 						var oldUpOrigin = upOrigin;
-						upOrigin = event.stageY / scaleY - gizmoOffsetY;
+						upOrigin = (event.stageY / scaleY
+							- gizmoOffsetY) * cosinus
+							- (event.stageX / scaleX - gizmoOffsetX) * sinus;
+						gizmoOffsetY += upOrigin;
 
 						if (upOrigin >= downOrigin)
 						{ // minimum scale
+							gizmoOffsetY -= upOrigin - (downOrigin - 0.1);
 							upOrigin = downOrigin - 0.1;
 						}
 
 						if (currentGizmo.horizontal < 0)
 						{ // is a Left gizmo
 							leftOrigin += (upOrigin - oldUpOrigin) / ratio;
+							gizmoOffsetX += leftOrigin;
 						}
 						else if (currentGizmo.horizontal > 0)
 						{ // is a Right gizmo
@@ -328,19 +383,26 @@ class KadabraScene extends Sprite
 						if (currentGizmo.horizontal < 0)
 						{ // is a Left gizmo
 							var oldLeftOrigin = leftOrigin;
-							leftOrigin = event.stageX / scaleX - gizmoOffsetX;
+							leftOrigin = (event.stageX / scaleX
+								- gizmoOffsetX) * cosinus
+								+ (event.stageY / scaleY - gizmoOffsetY) * sinus;
+							gizmoOffsetX += leftOrigin;
 
 							if (leftOrigin >= rightOrigin)
 							{ // minimum scale
+								gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
 								leftOrigin = rightOrigin - 0.1;
 							}
 
 							upOrigin += (leftOrigin - oldLeftOrigin) * ratio;
+							gizmoOffsetY += upOrigin;
 						}
 						else if (currentGizmo.horizontal > 0)
 						{ // is a Right gizmo
 							var oldRightOrigin = rightOrigin;
-							rightOrigin = event.stageX / scaleX - gizmoOffsetX;
+							rightOrigin = (event.stageX / scaleX
+								- gizmoOffsetX) * cosinus
+								+ (event.stageY / scaleY - gizmoOffsetY) * sinus;
 
 							if (rightOrigin <= leftOrigin)
 							{ // minimum scale
@@ -348,6 +410,7 @@ class KadabraScene extends Sprite
 							}
 
 							upOrigin += (oldRightOrigin - rightOrigin) * ratio;
+							gizmoOffsetY += upOrigin;
 						}
 					}
 				}
@@ -357,7 +420,9 @@ class KadabraScene extends Sprite
 						bPoint))
 					{
 						var oldDownOrigin = downOrigin;
-						downOrigin = event.stageY / scaleY - gizmoOffsetY;
+						downOrigin = (event.stageY / scaleY
+							- gizmoOffsetY) * cosinus
+							- (event.stageX / scaleX - gizmoOffsetX) * sinus;
 
 						if (downOrigin <= upOrigin)
 						{ // minimum scale
@@ -367,6 +432,7 @@ class KadabraScene extends Sprite
 						if (currentGizmo.horizontal < 0)
 						{ // is a Left gizmo
 							leftOrigin += (oldDownOrigin - downOrigin) / ratio;
+							gizmoOffsetX += leftOrigin;
 						}
 						else if (currentGizmo.horizontal > 0)
 						{ // is a Right gizmo
@@ -378,10 +444,14 @@ class KadabraScene extends Sprite
 						if (currentGizmo.horizontal < 0)
 						{ // is a Left gizmo
 							var oldLeftOrigin = leftOrigin;
-							leftOrigin = event.stageX / scaleX - gizmoOffsetX;
+							leftOrigin = (event.stageX / scaleX
+								- gizmoOffsetX) * cosinus
+								+ (event.stageY / scaleY - gizmoOffsetY) * sinus;
+							gizmoOffsetX += leftOrigin;
 
 							if (leftOrigin >= rightOrigin)
 							{ // minimum scale
+								gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
 								leftOrigin = rightOrigin - 0.1;
 							}
 
@@ -390,7 +460,9 @@ class KadabraScene extends Sprite
 						else if (currentGizmo.horizontal > 0)
 						{ // is a Right gizmo
 							var oldRightOrigin = rightOrigin;
-							rightOrigin = event.stageX / scaleX - gizmoOffsetX;
+							rightOrigin = (event.stageX / scaleX
+								- gizmoOffsetX) * cosinus
+								+ (event.stageY / scaleY - gizmoOffsetY) * sinus;
 
 							if (rightOrigin <= leftOrigin)
 							{ // minimum scale
@@ -406,16 +478,22 @@ class KadabraScene extends Sprite
 			{ // not preserving proportions
 				if (currentGizmo.vertical < 0)
 				{ // is an Up gizmo
-					upOrigin = event.stageY / scaleY - gizmoOffsetY;
+					upOrigin = (event.stageY / scaleY
+						- gizmoOffsetY) * cosinus
+						- (event.stageX / scaleX - gizmoOffsetX) * sinus;
+					gizmoOffsetY += upOrigin;
 
 					if (upOrigin >= downOrigin)
 					{
+						gizmoOffsetY -= upOrigin - (downOrigin - 0.1);
 						upOrigin = downOrigin - 0.1;
 					}
 				}
 				else if (currentGizmo.vertical > 0)
 				{ // is a Down gizmo
-					downOrigin = event.stageY / scaleY - gizmoOffsetY;
+					downOrigin = (event.stageY / scaleY
+						- gizmoOffsetY) * cosinus
+						- (event.stageX / scaleX - gizmoOffsetX) * sinus;
 
 					if (downOrigin <= upOrigin)
 					{
@@ -425,16 +503,22 @@ class KadabraScene extends Sprite
 
 				if (currentGizmo.horizontal < 0)
 				{ // is a Left gizmo
-					leftOrigin = event.stageX / scaleX - gizmoOffsetX;
+					leftOrigin = (event.stageX / scaleX
+						- gizmoOffsetX) * cosinus
+						+ (event.stageY / scaleY - gizmoOffsetY) * sinus;
+					gizmoOffsetX += leftOrigin;
 
 					if (leftOrigin >= rightOrigin)
 					{
+						gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
 						leftOrigin = rightOrigin - 0.1;
 					}
 				}
 				else if (currentGizmo.horizontal > 0)
 				{ // is a Right gizmo
-					rightOrigin = event.stageX / scaleX - gizmoOffsetX;
+					rightOrigin = (event.stageX / scaleX
+						- gizmoOffsetX) * cosinus
+						+ (event.stageY / scaleY - gizmoOffsetY) * sinus;
 
 					if (rightOrigin <= leftOrigin)
 					{
@@ -447,16 +531,22 @@ class KadabraScene extends Sprite
 		{ // gizmo has only one direction
 			if (currentGizmo.vertical < 0)
 			{ // is an Up gizmo
-				upOrigin = event.stageY / scaleY - gizmoOffsetY;
+				upOrigin = (event.stageY / scaleY
+					- gizmoOffsetY) * cosinus
+					- (event.stageX / scaleX - gizmoOffsetX) * sinus;
+				gizmoOffsetY += upOrigin;
 
 				if (upOrigin >= downOrigin)
 				{
+					gizmoOffsetY -= upOrigin - (downOrigin - 0.1);
 					upOrigin = downOrigin - 0.1;
 				}
 			}
 			else if (currentGizmo.vertical > 0)
 			{ // is a Down gizmo
-				downOrigin = event.stageY / scaleY - gizmoOffsetY;
+				downOrigin = (event.stageY / scaleY
+					- gizmoOffsetY) * cosinus
+					- (event.stageX / scaleX - gizmoOffsetX) * sinus;
 
 				if (downOrigin <= upOrigin)
 				{
@@ -465,21 +555,31 @@ class KadabraScene extends Sprite
 			}
 			else if (currentGizmo.horizontal < 0)
 			{ // is a Left gizmo
-				leftOrigin = event.stageX / scaleX - gizmoOffsetX;
+				leftOrigin = (event.stageX / scaleX
+					- gizmoOffsetX) * cosinus
+					+ (event.stageY / scaleY - gizmoOffsetY) * sinus;
+				gizmoOffsetX += leftOrigin;
 
 				if (leftOrigin >= rightOrigin)
 				{
+					gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
 					leftOrigin = rightOrigin - 0.1;
 				}
 			}
 			else if (currentGizmo.horizontal > 0)
-			{ // is a Down gizmo
-				rightOrigin = event.stageX / scaleX - gizmoOffsetX;
+			{ // is a Right gizmo
+				rightOrigin = (event.stageX / scaleX
+					- gizmoOffsetX) * cosinus
+					+ (event.stageY / scaleY - gizmoOffsetY) * sinus;
 
 				if (rightOrigin <= leftOrigin)
 				{
 					rightOrigin = leftOrigin + 0.1;
 				}
+			}
+			else
+			{
+				rotate(event);
 			}
 		}
 
@@ -488,60 +588,139 @@ class KadabraScene extends Sprite
 		transformTool.gizmosHeight = downOrigin - upOrigin;
 		transformTool.gizmosWidth = rightOrigin - leftOrigin;
 
+		for (image in selectedAssets)
+		{
+			image.image.height *= transformTool.gizmosHeight / oldGizmosHeight;
+			image.y += upOrigin * cosinus + leftOrigin * sinus;
+			downOrigin -= upOrigin;
+			image.image.width *= transformTool.gizmosWidth / oldGizmosWidth;
+			image.x += leftOrigin * cosinus - upOrigin * sinus;
+			rightOrigin -= leftOrigin;
+			upOrigin = 0;
+			leftOrigin = 0;
+		}
+
 		transformTool.updateGizmos();
 
 		transformTool.x = leftOrigin;
 		transformTool.y = upOrigin;
 
+		event.updateAfterEvent();
+	}
+
+	private function rotate(event:MouseEvent):Void
+	{
+		var newAngle = Math.atan((event.stageX / scaleX - gizmoOffsetX) / (event.stageY / scaleY - gizmoOffsetY));
+		newAngle -= defaultAngle;
+		newAngle *= 180 / Math.PI;
+
+		if (event.stageY / scaleY - gizmoOffsetY >= 0)
+		{
+			newAngle += 180;
+		}
+
 		for (image in selectedAssets)
 		{
-			image.height *= transformTool.gizmosHeight / oldGizmosHeight;
-			image.y = upOrigin;
-			image.width *= transformTool.gizmosWidth / oldGizmosWidth;
-			image.x = leftOrigin;
+			image.x = defaultX - transformTool.pivot.x * cosinus + transformTool.pivot.y * sinus;
+			image.y = defaultY - transformTool.pivot.x * sinus - transformTool.pivot.y * cosinus;
+			image.rotation = -newAngle;
 		}
+
+		radianRotation = selectedAssets.first().rotation * Math.PI / 180;
+		cosinus = Math.cos(radianRotation);
+		sinus = Math.sin(radianRotation);
+	}
+
+	private function dragPivot(event:MouseEvent):Void
+	{
+		if (!dragging)
+		{
+			dragging = true;
+		}
+
+		transformTool.pivot.x = (event.stageX / scaleX
+			- gizmoOffsetX) * cosinus
+			+ (event.stageY / scaleY - gizmoOffsetY) * sinus;
+		transformTool.pivot.y = (event.stageY / scaleY
+			- gizmoOffsetY) * cosinus
+			- (event.stageX / scaleX - gizmoOffsetX) * sinus;
+
+		trace(transformTool.pivot.x);
+		trace(transformTool.pivot.y);
+
+		if (transformTool.pivot.x < 0)
+		{
+			transformTool.pivot.x = 0;
+		}
+		else if (transformTool.pivot.x > transformTool.gizmosWidth)
+		{
+			transformTool.pivot.x = transformTool.gizmosWidth;
+		}
+
+		if (transformTool.pivot.y < 0)
+		{
+			transformTool.pivot.y = 0;
+		}
+		else if (transformTool.pivot.y > transformTool.gizmosHeight)
+		{
+			transformTool.pivot.y = transformTool.gizmosHeight;
+		}
+
+		transformTool.pivot.X = transformTool.pivot.x / transformTool.gizmosWidth;
+		transformTool.pivot.Y = transformTool.pivot.y / transformTool.gizmosHeight;
 
 		event.updateAfterEvent();
 	}
 
 	private function selectImage(event:MouseEvent):Void
 	{
-		if (!dragging)
+		if (!dragging && !scaling)
 		{
 			if (Std.is(event.target, KadabraImage))
 			{
-				if (event.shiftKey)
-				{
-					if (!(cast(event.target, KadabraImage)).isSelected)
-					{
-						selectedAssets.add(cast(event.target, KadabraImage));
-						selectedAssets.last().select();
-					}
-				}
-				else
-				{
-					for (image in selectedAssets)
-					{
-						image.unselect();
-					}
-					selectedAssets.clear();
-					selectedAssets.add(cast(event.target, KadabraImage));
-					selectedAssets.last().select();
-				}
-			}
-			else if (!Std.is(event.target, Gizmo))
-			{
+				// if (event.shiftKey)
+				// {
+				//	if (!(cast(event.target, KadabraImage)).isSelected)
+				//	{
+				//		selectedAssets.add(cast(event.target, KadabraImage));
+				//		selectedAssets.last().select();
+				//	}
+				// }
+				// else
+				// {
 				for (image in selectedAssets)
 				{
+					trace("select image unselect");
 					image.unselect();
 				}
 				selectedAssets.clear();
+				selectedAssets.add(cast(event.target, KadabraImage));
+				selectedAssets.last().select();
+
+				radianRotation = selectedAssets.first().rotation * Math.PI / 180;
+				cosinus = Math.cos(radianRotation);
+				sinus = Math.sin(radianRotation);
+				// }
 			}
-			updateGizmos();
+			else if (!Std.is(event.target, Gizmo))
+			{
+				if (!selectedAssets.isEmpty())
+				{
+					for (image in selectedAssets)
+					{
+						trace("select notgizmo unselect");
+						image.unselect();
+					}
+					selectedAssets.clear();
+
+					updateGizmos();
+				}
+			}
 		}
 		else
 		{
 			dragging = false;
+			scaling = false;
 		}
 	}
 
@@ -549,11 +728,11 @@ class KadabraScene extends Sprite
 	{ // puts gizmos on the corners and in the middle of the sides of the selection
 		if (selectedAssets.isEmpty())
 		{
-			removeChild(transformTool);
+			transformTool.parent.removeChild(transformTool);
 		}
 		else
 		{
-			addChild(transformTool);
+			selectedAssets.first().addChild(transformTool);
 
 			upOrigin = stage.height;
 			downOrigin = -800;
@@ -562,22 +741,26 @@ class KadabraScene extends Sprite
 
 			for (image in selectedAssets)
 			{ // determines bounds of the selection
-				if (image.y < upOrigin)
-				{
-					upOrigin = image.y;
-				}
-				if (image.y + image.height > downOrigin)
-				{
-					downOrigin = image.y + image.height;
-				}
-				if (image.x < leftOrigin)
-				{
-					leftOrigin = image.x;
-				}
-				if (image.x + image.width > rightOrigin)
-				{
-					rightOrigin = image.x + image.width;
-				}
+				// if (image.y < upOrigin)
+				// {
+				//	upOrigin = image.y;
+				// }
+				// if (image.y + image.height > downOrigin)
+				// {
+				//	downOrigin = image.y + image.height;
+				// }
+				// if (image.x < leftOrigin)
+				// {
+				//	leftOrigin = image.x;
+				// }
+				// if (image.x + image.width > rightOrigin)
+				// {
+				//	rightOrigin = image.x + image.width;
+				// }
+				upOrigin = image.image.y;
+				downOrigin = image.image.y + image.image.height;
+				leftOrigin = image.image.x;
+				rightOrigin = image.image.x + image.image.width;
 			}
 
 			transformTool.gizmosHeight = downOrigin - upOrigin;
