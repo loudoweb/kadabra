@@ -1,3 +1,4 @@
+import lime.ui.KeyCode;
 import openfl.geom.Transform;
 import io.InputPoll;
 import utils.KadabraUtils;
@@ -63,6 +64,8 @@ class KadabraScene extends Sprite
 
 	var defaultAngle:Float;
 
+	var pivotEnabled = true;
+
 	var ratio:Float;
 
 	public var scrollX:Float;
@@ -117,6 +120,8 @@ class KadabraScene extends Sprite
 		stage.addEventListener(MouseEvent.CLICK, selectImage, true);
 
 		stage.addEventListener(MouseEvent.RELEASE_OUTSIDE, onMouseUp);
+
+		InputPoll.onKeyDown.add(togglePivot);
 	}
 
 	private function dragNDrop(path:String)
@@ -174,7 +179,6 @@ class KadabraScene extends Sprite
 			{
 				for (image in selectedAssets)
 				{
-					trace("startDragging unselect");
 					image.unselect();
 				}
 				selectedAssets.clear();
@@ -219,6 +223,7 @@ class KadabraScene extends Sprite
 		}
 		else if (Std.is(event.target, Pivot))
 		{
+			// gizmoOffsets are here used for the pivot
 			gizmoOffsetX = event.stageX / scaleX - (transformTool.pivot.x * cosinus - transformTool.pivot.y * sinus);
 			gizmoOffsetY = event.stageY / scaleY - (transformTool.pivot.x * sinus + transformTool.pivot.y * cosinus);
 
@@ -347,8 +352,8 @@ class KadabraScene extends Sprite
 				else if (coef > 0)
 				{
 					aPoint = new Point(transformTool.x, transformTool.y);
-					bPoint = new Point(transformTool.gizmosWidth * cosinus + transformTool.gizmosHeight * sinus,
-						transformTool.gizmosHeight * cosinus - transformTool.gizmosWidth * sinus);
+					bPoint = new Point(transformTool.gizmosWidth * cosinus - transformTool.gizmosHeight * sinus,
+						transformTool.gizmosHeight * cosinus + transformTool.gizmosWidth * sinus);
 				}
 
 				if (currentGizmo.vertical < 0)
@@ -588,13 +593,13 @@ class KadabraScene extends Sprite
 		transformTool.gizmosHeight = downOrigin - upOrigin;
 		transformTool.gizmosWidth = rightOrigin - leftOrigin;
 
-		for (image in selectedAssets)
-		{
-			image.image.height *= transformTool.gizmosHeight / oldGizmosHeight;
-			image.y += upOrigin * cosinus + leftOrigin * sinus;
+		for (asset in selectedAssets)
+		{ // image dimensions are adjusted and asset coordinates are changed to always keep upOrigin = LeftOrigin = 0
+			asset.image.height *= transformTool.gizmosHeight / oldGizmosHeight;
+			asset.y += upOrigin * cosinus + leftOrigin * sinus;
 			downOrigin -= upOrigin;
-			image.image.width *= transformTool.gizmosWidth / oldGizmosWidth;
-			image.x += leftOrigin * cosinus - upOrigin * sinus;
+			asset.image.width *= transformTool.gizmosWidth / oldGizmosWidth;
+			asset.x += leftOrigin * cosinus - upOrigin * sinus;
 			rightOrigin -= leftOrigin;
 			upOrigin = 0;
 			leftOrigin = 0;
@@ -615,20 +620,21 @@ class KadabraScene extends Sprite
 		newAngle *= 180 / Math.PI;
 
 		if (event.stageY / scaleY - gizmoOffsetY >= 0)
-		{
+		{ // adjusts the angle if the mouse is under the pivot
 			newAngle += 180;
 		}
 
-		for (image in selectedAssets)
+		for (asset in selectedAssets)
 		{
-			image.x = defaultX - transformTool.pivot.x * cosinus + transformTool.pivot.y * sinus;
-			image.y = defaultY - transformTool.pivot.x * sinus - transformTool.pivot.y * cosinus;
-			image.rotation = -newAngle;
-		}
+			asset.rotation = -newAngle;
 
-		radianRotation = selectedAssets.first().rotation * Math.PI / 180;
-		cosinus = Math.cos(radianRotation);
-		sinus = Math.sin(radianRotation);
+			radianRotation = selectedAssets.first().rotation * Math.PI / 180;
+			cosinus = Math.cos(radianRotation);
+			sinus = Math.sin(radianRotation);
+
+			asset.x = defaultX - transformTool.pivot.x * cosinus + transformTool.pivot.y * sinus;
+			asset.y = defaultY - transformTool.pivot.x * sinus - transformTool.pivot.y * cosinus;
+		}
 	}
 
 	private function dragPivot(event:MouseEvent):Void
@@ -645,9 +651,7 @@ class KadabraScene extends Sprite
 			- gizmoOffsetY) * cosinus
 			- (event.stageX / scaleX - gizmoOffsetX) * sinus;
 
-		trace(transformTool.pivot.x);
-		trace(transformTool.pivot.y);
-
+		// minimum & maximum positions
 		if (transformTool.pivot.x < 0)
 		{
 			transformTool.pivot.x = 0;
@@ -672,6 +676,23 @@ class KadabraScene extends Sprite
 		event.updateAfterEvent();
 	}
 
+	private function togglePivot(key:KKey):Void
+	{
+		if (key.charCode == KeyCode.P)
+		{
+			if (pivotEnabled)
+			{
+				transformTool.removeChild(transformTool.pivot);
+				pivotEnabled = false;
+			}
+			else
+			{
+				transformTool.addChild(transformTool.pivot);
+				pivotEnabled = true;
+			}
+		}
+	}
+
 	private function selectImage(event:MouseEvent):Void
 	{
 		if (!dragging && !scaling)
@@ -690,7 +711,6 @@ class KadabraScene extends Sprite
 				// {
 				for (image in selectedAssets)
 				{
-					trace("select image unselect");
 					image.unselect();
 				}
 				selectedAssets.clear();
@@ -708,7 +728,6 @@ class KadabraScene extends Sprite
 				{
 					for (image in selectedAssets)
 					{
-						trace("select notgizmo unselect");
 						image.unselect();
 					}
 					selectedAssets.clear();
