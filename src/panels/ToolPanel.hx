@@ -1,5 +1,7 @@
 package panels;
 
+import lime.app.Event;
+import feathers.events.TriggerEvent;
 import feathers.skins.RectangleSkin;
 import utils.KadabraUtils;
 import openfl.utils.Assets;
@@ -25,9 +27,15 @@ class ToolPanel extends LayoutGroup
 		"icon-fx"
 	];
 
+	public static var selectedButton = "icon-cursor";
+
+	public static var onButtonChange:Event<String->Void>;
+
 	public function new()
 	{
 		super();
+
+		onButtonChange = new Event<String->Void>();
 
 		var _layout = new VerticalLayout();
 		_layout.horizontalAlign = CENTER;
@@ -47,8 +55,30 @@ class ToolPanel extends LayoutGroup
 			button.width = 26;
 			button.height = 26;
 			button.buttonMode = true;
-			button.backgroundSkin = new RectangleSkin(KadabraUtils.ICON_FILL, KadabraUtils.ICON_BORDER);
+			if (button.name == selectedButton)
+			{
+				button.backgroundSkin = new RectangleSkin(KadabraUtils.SELECTED_FILL, KadabraUtils.ICON_BORDER);
+			}
+			else
+			{
+				button.backgroundSkin = new RectangleSkin(KadabraUtils.ICON_FILL, KadabraUtils.ICON_BORDER);
+			}
 			addChild(button);
+			button.addEventListener(TriggerEvent.TRIGGER, selectButton);
+		}
+	}
+
+	function selectButton(event:TriggerEvent):Void
+	{
+		var currentButton = cast(event.target, Button);
+		if (selectedButton != currentButton.name)
+		{
+			var oldButton = cast(getChildByName(selectedButton), Button);
+			oldButton.backgroundSkin = new RectangleSkin(KadabraUtils.ICON_FILL, KadabraUtils.ICON_BORDER);
+			onButtonChange.dispatch(currentButton.name);
+			selectedButton = currentButton.name;
+			currentButton.backgroundSkin = new RectangleSkin(KadabraUtils.SELECTED_FILL, KadabraUtils.ICON_BORDER);
+			trace(selectedButton);
 		}
 	}
 }

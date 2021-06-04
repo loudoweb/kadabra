@@ -23,6 +23,7 @@ class KadabraUtils
 
 	public static var ICON_FILL:FillStyle = None;
 	public static var ICON_BORDER:LineStyle = None;
+	public static var SELECTED_FILL = SolidColor(KADABRA_COLOR);
 
 	public static var HOVER_FILL = SolidColor(KADABRA_COLOR);
 
