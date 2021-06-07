@@ -24,7 +24,13 @@ class Pivot extends Sprite
 		graphics.endFill();
 	}
 
-	public function updatePos(width:Float, height:Float):Void
+	inline public function setPivot(X:Float, Y:Float):Void
+	{
+		this.X = X;
+		this.Y = Y;
+	}
+
+	inline public function updatePos(width:Float, height:Float):Void
 	{
 		x = width * X;
 		y = height * Y;

@@ -51,7 +51,7 @@ class PropertiesPanel extends LayoutGroup
 		nameItem = new FormItem();
 		nameItem.textPosition = LEFT;
 		nameItem.text = "name : ";
-		nameItem.textFormat = new feathers.text.TextFormat("Roboto", 20, KadabraUtils.HEADER_FONT_COLOR);
+		nameItem.textFormat = KadabraUtils.FONT_NORMAL;
 		nameInput = new TextInput();
 		nameInput.name = "nameInput";
 		nameItem.content = nameInput;
@@ -59,7 +59,7 @@ class PropertiesPanel extends LayoutGroup
 		typeItem = new FormItem();
 		typeItem.textPosition = LEFT;
 		typeItem.text = "type : ";
-		typeItem.textFormat = new feathers.text.TextFormat("Roboto", 20, KadabraUtils.HEADER_FONT_COLOR);
+		typeItem.textFormat = KadabraUtils.FONT_NORMAL;
 		typeInput = new TextInput();
 		typeItem.content = typeInput;
 		typeInput.enabled = false;
@@ -67,25 +67,28 @@ class PropertiesPanel extends LayoutGroup
 		xItem = new FormItem();
 		xItem.textPosition = LEFT;
 		xItem.text = "X : ";
-		xItem.textFormat = new feathers.text.TextFormat("Roboto", 20, KadabraUtils.HEADER_FONT_COLOR);
+		xItem.textFormat = KadabraUtils.FONT_NORMAL;
 		xInput = new TextInput();
 		xInput.name = "xInput";
+		xInput.restrict = "0-9\\.";
 		xItem.content = xInput;
 
 		yItem = new FormItem();
 		yItem.textPosition = LEFT;
 		yItem.text = "Y : ";
-		yItem.textFormat = new feathers.text.TextFormat("Roboto", 20, KadabraUtils.HEADER_FONT_COLOR);
+		yItem.textFormat = KadabraUtils.FONT_NORMAL;
 		yInput = new TextInput();
 		yInput.name = "yInput";
+		yInput.restrict = "0-9\\.";
 		yItem.content = yInput;
 
 		rotationItem = new FormItem();
 		rotationItem.textPosition = LEFT;
 		rotationItem.text = "Rotation : ";
-		rotationItem.textFormat = new feathers.text.TextFormat("Roboto", 20, KadabraUtils.HEADER_FONT_COLOR);
+		rotationItem.textFormat = KadabraUtils.FONT_NORMAL;
 		rotationInput = new TextInput();
 		rotationInput.name = "rotationInput";
+		rotationInput.restrict = "0-9\\.";
 		rotationItem.content = rotationInput;
 
 		addChild(UIFactory.createHeader("Properties"));
@@ -100,7 +103,7 @@ class PropertiesPanel extends LayoutGroup
 		addEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
 	}
 
-	function onAddedToStage(event:Event)
+	function onAddedToStage(e:Event)
 	{
 		KadabraScene.onSelectAsset.add(showSelectedAsset);
 		KadabraScene.onAssetUpdated.add(updateData);
@@ -135,24 +138,26 @@ class PropertiesPanel extends LayoutGroup
 		rotationInput.text = "" + selectedAsset.rotation;
 	}
 
-	function dispatchInputChange(event:Event)
+	function dispatchInputChange(e:Event)
 	{
-		var currentInput = cast(event.target, TextInput);
+		var currentInput = cast(e.target, TextInput);
 
 		if (currentInput.name == "xInput" || currentInput.name == "yInput" || currentInput.name == "rotationInput")
 		{
 			if (currentInput.text == "")
-			{ // if a number input is empty, its default value is "0"
-				currentInput.text += 0;
+			{
+				// avoid re-dispatching the event change
+				currentInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+				// if a number input is empty, its default value is "0"
+				currentInput.text = "0";
+				currentInput.addEventListener(Event.CHANGE, dispatchInputChange);
 			}
-			// number inputs can only contain Float numbers
-			currentInput.text = "" + Std.parseFloat(currentInput.text);
 		}
 		else
 		{
 			if (currentInput.text == "")
 			{ // if the name input is empty, its default value is the type name
-				currentInput.text += typeInput.text;
+				currentInput.text += typeInput.text; // TODO increment number
 			}
 		}
 

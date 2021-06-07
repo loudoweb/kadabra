@@ -2,18 +2,18 @@ import motion.easing.Quad;
 import motion.Actuate;
 import openfl.display.Bitmap;
 import openfl.display.BitmapData;
+import openfl.display.PixelSnapping;
 import openfl.display.Sprite;
 import openfl.Assets;
 
 class KadabraImage extends Sprite
 {
-	public var column:Int;
 	public var moving:Bool;
 	public var removed:Bool;
 	public var row:Int;
 	public var type:Int;
 
-	public var isSelected = true;
+	public var isSelected:Bool;
 
 	public var image:Bitmap;
 
@@ -22,12 +22,19 @@ class KadabraImage extends Sprite
 	public var defaultX:Float;
 	public var defaultY:Float;
 
+	public var pivotX:Float;
+	public var pivotY:Float;
+
 	public function new(bitmapdata:BitmapData)
 	{
 		super();
 
-		image = new Bitmap(bitmapdata);
-		image.smoothing = true;
+		isSelected = true;
+
+		pivotX = 0;
+		pivotY = 0;
+
+		image = new Bitmap(bitmapdata, PixelSnapping.ALWAYS, true);
 		addChild(image);
 
 		defaultHeight = image.height;

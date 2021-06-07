@@ -1,5 +1,6 @@
 package utils;
 
+import feathers.layout.VerticalLayoutData;
 import feathers.skins.UnderlineSkin;
 import feathers.skins.RectangleSkin;
 import feathers.controls.Label;
@@ -18,6 +19,7 @@ class UIFactory
 		header.height = KadabraUtils.HEADER_THICKNESS;
 		header.backgroundSkin = skin;
 		header.layout = layout;
+		header.layoutData = new VerticalLayoutData(100.0);
 		if (icon != null)
 		{
 			var _icon = KadabraUtils.getIcon(icon);

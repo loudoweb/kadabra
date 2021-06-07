@@ -33,6 +33,8 @@ class KadabraUtils
 	public static var DEBUG_RED = SolidColor(0xFF0000);
 	public static var DEBUG_BLUE = SolidColor(0x0000FF);
 
+	public static var FONT_NORMAL = new feathers.text.TextFormat("Roboto", 20, HEADER_FONT_COLOR);
+
 	public static function initFonts(regular:String):Void
 	{
 		FONT = Assets.getFont(regular).fontName;
@@ -42,5 +44,15 @@ class KadabraUtils
 	inline public static function getIcon(name:String):Bitmap
 	{
 		return new Bitmap(Assets.getBitmapData("icons/" + name + ".png"), PixelSnapping.ALWAYS, true);
+	}
+
+	inline static public function toRadians(deg:Float):Float
+	{
+		return deg * Math.PI / 180;
+	}
+
+	inline static public function toDegree(rad:Float):Float
+	{
+		return rad * 180 / Math.PI;
 	}
 }
