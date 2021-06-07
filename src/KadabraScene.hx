@@ -770,6 +770,7 @@ class KadabraScene extends Sprite
 		transformTool.pivot.X = kadabraImage.pivotX;
 		transformTool.pivot.Y = kadabraImage.pivotY;
 
+		onAssetUpdated.dispatch();
 		e.updateAfterEvent();
 	}
 
@@ -997,14 +998,30 @@ class KadabraScene extends Sprite
 		{
 			switch (input.name)
 			{
-				case("nameInput"):
+				case "nameInput":
 					selectedAssets.first().name = input.text;
-				case("xInput"):
+				case "xTransform":
 					selectedAssets.first().x = Std.parseFloat(input.text);
-				case("yInput"):
+				case "yTransform":
 					selectedAssets.first().y = Std.parseFloat(input.text);
-				case("rotationInput"):
+				case "rTransform":
 					selectedAssets.first().rotation = Std.parseFloat(input.text);
+				case "aTransform":
+					var currentAsset = Std.is(selectedAssets.first(),
+						KadabraImage) ? selectedAssets.first().getChildAt(0) : selectedAssets.first();
+					currentAsset.alpha = Std.parseFloat(input.text);
+				case "xPivot":
+					if (Std.is(selectedAssets.first(), KadabraImage))
+					{
+						var kImage:KadabraImage = cast selectedAssets.first();
+						kImage.pivotX = Std.parseFloat(input.text);
+					}
+				case "yPivot":
+					if (Std.is(selectedAssets.first(), KadabraImage))
+					{
+						var kImage:KadabraImage = cast selectedAssets.first();
+						kImage.pivotY = Std.parseFloat(input.text);
+					}
 			}
 		}
 	}

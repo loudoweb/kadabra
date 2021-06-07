@@ -1,11 +1,17 @@
 package panels;
 
+import feathers.layout.ResponsiveGridLayoutData;
+import feathers.skins.RectangleSkin;
+import feathers.layout.VerticalLayoutData;
+import feathers.layout.HorizontalLayout;
+import feathers.controls.Label;
 import utils.KadabraUtils;
 import feathers.layout.FormLayout;
 import feathers.controls.TextInput;
 import feathers.controls.FormItem;
 import feathers.controls.Form;
 import feathers.layout.VerticalLayout;
+import feathers.layout.ResponsiveGridLayout;
 import openfl.events.Event;
 import openfl.display.Sprite;
 import feathers.layout.HorizontalLayoutData;
@@ -21,12 +27,17 @@ class PropertiesPanel extends LayoutGroup
 	var nameInput:TextInput;
 	var typeItem:FormItem;
 	var typeInput:TextInput;
-	var xItem:FormItem;
+	var transformItem:LayoutGroup;
 	var xInput:TextInput;
-	var yItem:FormItem;
 	var yInput:TextInput;
-	var rotationItem:FormItem;
 	var rotationInput:TextInput;
+	var alphaInput:TextInput;
+
+	var pivots:LayoutGroup;
+	var xPivot:LayoutGroup;
+	var xPivotInput:TextInput;
+	var yPivot:LayoutGroup;
+	var yPivotInput:TextInput;
 
 	public static var inputChange:lime.app.Event<TextInput->Void>;
 
@@ -37,7 +48,7 @@ class PropertiesPanel extends LayoutGroup
 		width = 300;
 		minWidth = 300;
 		maxWidth = 600;
-		layoutData = new HorizontalLayoutData(100.0);
+		layoutData = new VerticalLayoutData(100.0);
 
 		inputChange = new lime.app.Event<TextInput->Void>();
 
@@ -47,6 +58,7 @@ class PropertiesPanel extends LayoutGroup
 		layout = _layout;
 
 		form = new Form();
+		form.layoutData = new VerticalLayoutData(100.0);
 
 		nameItem = new FormItem();
 		nameItem.textPosition = LEFT;
@@ -64,41 +76,73 @@ class PropertiesPanel extends LayoutGroup
 		typeItem.content = typeInput;
 		typeInput.enabled = false;
 
-		xItem = new FormItem();
-		xItem.textPosition = LEFT;
-		xItem.text = "X : ";
-		xItem.textFormat = KadabraUtils.FONT_NORMAL;
-		xInput = new TextInput();
-		xInput.name = "xInput";
-		xInput.restrict = "0-9\\.";
-		xItem.content = xInput;
+		// transform
 
-		yItem = new FormItem();
-		yItem.textPosition = LEFT;
-		yItem.text = "Y : ";
-		yItem.textFormat = KadabraUtils.FONT_NORMAL;
-		yInput = new TextInput();
-		yInput.name = "yInput";
-		yInput.restrict = "0-9\\.";
-		yItem.content = yInput;
+		transformItem = new LayoutGroup();
+		transformItem.layout = new VerticalLayout();
+		transformItem.layoutData = VerticalLayoutData.fillHorizontal();
 
-		rotationItem = new FormItem();
-		rotationItem.textPosition = LEFT;
-		rotationItem.text = "Rotation : ";
-		rotationItem.textFormat = KadabraUtils.FONT_NORMAL;
-		rotationInput = new TextInput();
-		rotationInput.name = "rotationInput";
-		rotationInput.restrict = "0-9\\.";
-		rotationItem.content = rotationInput;
+		var tLabel = new Label("Origin");
+		tLabel.textFormat = KadabraUtils.FONT_NORMAL;
+		transformItem.addChild(tLabel);
+
+		var transformInputs = new LayoutGroup();
+		transformInputs.layout = new ResponsiveGridLayout(2);
+		transformInputs.layoutData = VerticalLayoutData.fillHorizontal();
+		transformItem.addChild(transformInputs);
+
+		var itemLabel = UIFactory.createItemLabel('X', "xTransform", 20, new ResponsiveGridLayoutData(1),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		xInput = itemLabel.input;
+		transformInputs.addChild(itemLabel.group);
+
+		itemLabel = UIFactory.createItemLabel('Y', "yTransform", 20, new ResponsiveGridLayoutData(1),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		yInput = itemLabel.input;
+		transformInputs.addChild(itemLabel.group);
+
+		itemLabel = UIFactory.createItemLabel('R', "rTransform", 20, new ResponsiveGridLayoutData(1),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		rotationInput = itemLabel.input;
+		transformInputs.addChild(itemLabel.group);
+
+		itemLabel = UIFactory.createItemLabel('A', "aTransform", 20, new ResponsiveGridLayoutData(1),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		alphaInput = itemLabel.input;
+		transformInputs.addChild(itemLabel.group);
+
+		// pivots
+
+		pivots = new LayoutGroup();
+		pivots.layout = new VerticalLayout();
+		pivots.layoutData = VerticalLayoutData.fillHorizontal();
+
+		var pivotsLabel = new Label("Origin");
+		pivotsLabel.textFormat = KadabraUtils.FONT_NORMAL;
+		pivots.addChild(pivotsLabel);
+
+		var pivotsItems = new LayoutGroup();
+		pivotsItems.layout = new HorizontalLayout();
+		pivotsItems.layoutData = VerticalLayoutData.fill();
+		pivots.addChild(pivotsItems);
+
+		var itemLabel = UIFactory.createItemLabel('X', "xPivot", 20, new HorizontalLayoutData(50.0),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		xPivotInput = itemLabel.input;
+		pivotsItems.addChild(itemLabel.group);
+
+		itemLabel = UIFactory.createItemLabel('Y', "yPivot", 20, new HorizontalLayoutData(50.0),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		yPivotInput = itemLabel.input;
+		pivotsItems.addChild(itemLabel.group);
 
 		addChild(UIFactory.createHeader("Properties"));
 		addChild(form);
 
 		form.addChild(nameItem);
 		form.addChild(typeItem);
-		form.addChild(xItem);
-		form.addChild(yItem);
-		form.addChild(rotationItem);
+		form.addChild(transformItem);
+		form.addChild(pivots);
 
 		addEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
 	}
@@ -111,6 +155,9 @@ class PropertiesPanel extends LayoutGroup
 		xInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		yInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		rotationInput.addEventListener(Event.CHANGE, dispatchInputChange);
+		alphaInput.addEventListener(Event.CHANGE, dispatchInputChange);
+		xPivotInput.addEventListener(Event.CHANGE, dispatchInputChange);
+		yPivotInput.addEventListener(Event.CHANGE, dispatchInputChange);
 	}
 
 	function showSelectedAsset(asset:Sprite)
@@ -120,11 +167,20 @@ class PropertiesPanel extends LayoutGroup
 		nameInput.text = asset.name;
 		if (Std.is(asset, KadabraImage))
 		{
+			var kImage:KadabraImage = cast asset;
 			typeInput.text = "image";
+
+			pivots.visible = true;
+
+			xPivotInput.text = "" + kImage.pivotX;
+			yPivotInput.text = "" + kImage.pivotY;
+			alphaInput.text = "" + selectedAsset.getChildAt(0).alpha;
 		}
 		else if (Std.is(asset, KadabraPoint))
 		{
 			typeInput.text = "point";
+
+			pivots.visible = false;
 		}
 		xInput.text = "" + asset.x;
 		yInput.text = "" + asset.y;
@@ -136,13 +192,26 @@ class PropertiesPanel extends LayoutGroup
 		xInput.text = "" + selectedAsset.x;
 		yInput.text = "" + selectedAsset.y;
 		rotationInput.text = "" + selectedAsset.rotation;
+		if (Std.is(selectedAsset, KadabraImage))
+		{
+			var asset:KadabraImage = cast selectedAsset;
+			alphaInput.text = "" + asset.image.alpha;
+			xPivotInput.text = "" + asset.pivotX;
+			yPivotInput.text = "" + asset.pivotY;
+		}
 	}
 
 	function dispatchInputChange(e:Event)
 	{
 		var currentInput = cast(e.target, TextInput);
 
-		if (currentInput.name == "xInput" || currentInput.name == "yInput" || currentInput.name == "rotationInput")
+		if (currentInput.name == "nameInput" || currentInput.name == "typeInput")
+		{
+			if (currentInput.text == "")
+			{ // if the name input is empty, its default value is the type name
+				currentInput.text += typeInput.text; // TODO increment number
+			}
+		} else
 		{
 			if (currentInput.text == "")
 			{
@@ -151,13 +220,6 @@ class PropertiesPanel extends LayoutGroup
 				// if a number input is empty, its default value is "0"
 				currentInput.text = "0";
 				currentInput.addEventListener(Event.CHANGE, dispatchInputChange);
-			}
-		}
-		else
-		{
-			if (currentInput.text == "")
-			{ // if the name input is empty, its default value is the type name
-				currentInput.text += typeInput.text; // TODO increment number
 			}
 		}
 
