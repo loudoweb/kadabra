@@ -792,8 +792,14 @@ class KadabraScene extends Sprite
 			case(KeyCode.DELETE):
 				if (!selectedAssets.isEmpty())
 				{
-					removedChild.dispatch(selectedAssets.first());
-					imageContainer.removeChild(selectedAssets.first());
+					for (asset in selectedAssets)
+					{
+						if (asset.parent != null)
+						{
+							removedChild.dispatch(asset);
+							asset.parent.removeChild(asset);
+						}
+					}
 				}
 		}
 	}
