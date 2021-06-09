@@ -1,30 +1,29 @@
+package assets;
+
 import utils.KadabraUtils;
 import openfl.display.Sprite;
 
-class KadabraPoint extends Sprite
+class KadabraPoint extends KadabraAsset
 {
 	public var X:Float;
 	public var Y:Float;
-
-	public var isSelected:Bool;
 
 	public function new()
 	{
 		super();
 
-		isSelected = false;
 		mouseChildren = false;
 		buttonMode = true;
 
-		select();
+		type = POINT;
 	}
 
-	public function select():Void
+	override public function select():Void
 	{
-		if (!isSelected)
-		{
-			isSelected = true;
+		super.select();
 
+		if (isSelected)
+		{
 			graphics.clear();
 			graphics.beginFill(KadabraUtils.KADABRA_COLOR, 1);
 			graphics.drawCircle(0, 0, 4);
@@ -32,12 +31,11 @@ class KadabraPoint extends Sprite
 		}
 	}
 
-	public function unselect():Void
+	override public function unselect():Void
 	{
-		if (isSelected)
+		super.unselect();
+		if (!isSelected)
 		{
-			isSelected = false;
-
 			graphics.clear();
 			graphics.lineStyle(0x000000, 2);
 			graphics.beginFill(0xFFFFFF);

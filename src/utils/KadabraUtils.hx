@@ -6,6 +6,7 @@ import openfl.display.Bitmap;
 import openfl.utils.Assets;
 import feathers.text.TextFormat;
 import feathers.graphics.FillStyle;
+import openfl.geom.Point;
 
 class KadabraUtils
 {
@@ -54,5 +55,45 @@ class KadabraUtils
 	inline static public function toDegree(rad:Float):Float
 	{
 		return rad * 180 / Math.PI;
+	}
+
+	inline static public function bound(value:Float, min:Float = 0, max:Float = 1):Float
+	{
+		value = (value < min) ? min : value;
+		return (value > max) ? max : value;
+	}
+
+	inline static public function roundDecimal(value:Float, precision:Int):Float
+	{
+		var mult:Float = 1;
+		for (i in 0...precision)
+		{
+			mult *= 10;
+		}
+		return Math.fround(value * mult) / mult;
+	}
+
+	/**
+	 * Get corrected position of sprite depending of rotation and pivot
+	 * @param x 
+	 * @param y 
+	 * @param angle degrees
+	 * @param width 
+	 * @param height 
+	 * @param pivotX [0,1]
+	 * @param pivotY [0,1]
+	 * @return Point position of 
+	 */
+	inline static public function getOrigin(x:Float, y:Float, angle:Float, width:Float, height:Float,
+			pivotX:Float = 0, pivotY:Float = 0):Point
+	{
+		var rad = toRadians(angle);
+		var s = Math.sin(rad);
+		var c = Math.cos(rad);
+
+		var _pivotX = pivotX * width;
+		var _pivotY = pivotY * height;
+
+		return new Point((0 - _pivotX) * c - (0 - _pivotY) * s + x, (0 - _pivotX) * s + (0 - _pivotY) * c + y);
 	}
 }

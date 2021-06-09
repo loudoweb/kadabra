@@ -1,3 +1,5 @@
+package assets;
+
 import motion.easing.Quad;
 import motion.Actuate;
 import openfl.display.Bitmap;
@@ -6,14 +8,11 @@ import openfl.display.PixelSnapping;
 import openfl.display.Sprite;
 import openfl.Assets;
 
-class KadabraImage extends Sprite
+class KadabraImage extends KadabraAsset
 {
 	public var moving:Bool;
 	public var removed:Bool;
 	public var row:Int;
-	public var type:Int;
-
-	public var isSelected:Bool;
 
 	public var image:Bitmap;
 
@@ -29,8 +28,6 @@ class KadabraImage extends Sprite
 	{
 		super();
 
-		isSelected = true;
-
 		pivotX = 0;
 		pivotY = 0;
 
@@ -41,6 +38,8 @@ class KadabraImage extends Sprite
 		defaultWidth = image.width;
 		defaultX = x;
 		defaultY = y;
+
+		type = IMAGE;
 	}
 
 	// public function FromPath (imagePath:String) {
@@ -57,21 +56,5 @@ class KadabraImage extends Sprite
 		scaleX = 1;
 		scaleY = 1;
 		alpha = 1;
-	}
-
-	public function select():Void
-	{
-		if (!isSelected)
-		{
-			isSelected = true;
-		}
-	}
-
-	public function unselect():Void
-	{
-		if (isSelected)
-		{
-			isSelected = false;
-		}
 	}
 }

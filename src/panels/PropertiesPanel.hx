@@ -17,6 +17,7 @@ import openfl.display.Sprite;
 import feathers.layout.HorizontalLayoutData;
 import utils.UIFactory;
 import feathers.controls.LayoutGroup;
+import assets.*;
 
 class PropertiesPanel extends LayoutGroup
 {
@@ -82,7 +83,7 @@ class PropertiesPanel extends LayoutGroup
 		transformItem.layout = new VerticalLayout();
 		transformItem.layoutData = VerticalLayoutData.fillHorizontal();
 
-		var tLabel = new Label("Origin");
+		var tLabel = new Label("Transform");
 		tLabel.textFormat = KadabraUtils.FONT_NORMAL;
 		transformItem.addChild(tLabel);
 
@@ -149,7 +150,7 @@ class PropertiesPanel extends LayoutGroup
 
 	function onAddedToStage(e:Event)
 	{
-		KadabraScene.onSelectAsset.add(showSelectedAsset);
+		KadabraScene.onAssetSelected.add(showSelectedAsset);
 		KadabraScene.onAssetUpdated.add(updateData);
 		nameInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		xInput.addEventListener(Event.CHANGE, dispatchInputChange);

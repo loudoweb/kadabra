@@ -12,6 +12,8 @@ import openfl.events.Event;
 
 class HierarchyPanel extends LayoutGroup
 {
+	public static var onAssetSelected:lime.app.Event<String->Void> = new lime.app.Event<String->Void>();
+
 	var tree:TreeView;
 
 	public function new():Void
@@ -35,12 +37,15 @@ class HierarchyPanel extends LayoutGroup
 		addChild(tree);
 
 		addEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
+
+		tree.addEventListener(Event.CHANGE, treeView_changeHandler);
 	}
 
 	function onAddedToStage(e:Event)
 	{
-		KadabraScene.addedChild.add(addAsset);
-		KadabraScene.removedChild.add(removeAsset);
+		KadabraScene.onChildAdded.add(addAsset);
+		KadabraScene.onChildRemoved.add(removeAsset);
+		KadabraScene.onAssetSelected.add(selectAsset);
 	}
 
 	public function addAsset(asset:Sprite):Void
@@ -51,5 +56,19 @@ class HierarchyPanel extends LayoutGroup
 	public function removeAsset(asset:Sprite):Void
 	{
 		tree.dataProvider.remove(asset.name);
+	}
+
+	public function selectAsset(asset:Sprite):Void
+	{
+		tree.selectedItem = asset.name;
+	}
+
+	function treeView_changeHandler(event:Event):Void
+	{
+		if (tree.selectedItem != null)
+		{
+			trace(tree.selectedItem);
+			onAssetSelected.dispatch(tree.selectedItem);
+		}
 	}
 }
