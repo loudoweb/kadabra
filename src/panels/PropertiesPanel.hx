@@ -31,6 +31,9 @@ class PropertiesPanel extends LayoutGroup
 	var transformItem:LayoutGroup;
 	var xInput:TextInput;
 	var yInput:TextInput;
+	var sizeItem:LayoutGroup;
+	var sxInput:TextInput;
+	var syInput:TextInput;
 	var rotationInput:TextInput;
 	var alphaInput:TextInput;
 
@@ -39,6 +42,8 @@ class PropertiesPanel extends LayoutGroup
 	var xPivotInput:TextInput;
 	var yPivot:LayoutGroup;
 	var yPivotInput:TextInput;
+
+	var dispatch:Bool;
 
 	public static var inputChange:lime.app.Event<TextInput->Void>;
 
@@ -50,6 +55,8 @@ class PropertiesPanel extends LayoutGroup
 		minWidth = 300;
 		maxWidth = 600;
 		layoutData = new VerticalLayoutData(100.0);
+
+		dispatch = true;
 
 		inputChange = new lime.app.Event<TextInput->Void>();
 
@@ -112,6 +119,21 @@ class PropertiesPanel extends LayoutGroup
 		alphaInput = itemLabel.input;
 		transformInputs.addChild(itemLabel.group);
 
+		// size
+		sizeItem = new LayoutGroup();
+		sizeItem.layout = new ResponsiveGridLayout(2);
+		sizeItem.layoutData = VerticalLayoutData.fillHorizontal();
+
+		itemLabel = UIFactory.createItemLabel('Sx', "sxTransform", 20, new ResponsiveGridLayoutData(1),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		sxInput = itemLabel.input;
+		sizeItem.addChild(itemLabel.group);
+
+		itemLabel = UIFactory.createItemLabel('Sy', "syTransform", 20, new ResponsiveGridLayoutData(1),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		syInput = itemLabel.input;
+		sizeItem.addChild(itemLabel.group);
+
 		// pivots
 
 		pivots = new LayoutGroup();
@@ -143,6 +165,7 @@ class PropertiesPanel extends LayoutGroup
 		form.addChild(nameItem);
 		form.addChild(typeItem);
 		form.addChild(transformItem);
+		form.addChild(sizeItem);
 		form.addChild(pivots);
 
 		addEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
@@ -152,44 +175,88 @@ class PropertiesPanel extends LayoutGroup
 	{
 		KadabraScene.onAssetSelected.add(showSelectedAsset);
 		KadabraScene.onAssetUpdated.add(updateData);
+		TransformTool.onTransform.add(updateData);
+
+		addChangeListeners();
+	}
+
+	function addChangeListeners():Void
+	{
 		nameInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		xInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		yInput.addEventListener(Event.CHANGE, dispatchInputChange);
+		sxInput.addEventListener(Event.CHANGE, dispatchInputChange);
+		syInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		rotationInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		alphaInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		xPivotInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		yPivotInput.addEventListener(Event.CHANGE, dispatchInputChange);
 	}
 
+	function removeChangeListeners():Void
+	{
+		nameInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		xInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		yInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		sxInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		syInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		rotationInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		alphaInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		xPivotInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		yPivotInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+	}
+
 	function showSelectedAsset(asset:Sprite)
 	{
 		selectedAsset = asset;
-
-		nameInput.text = asset.name;
-		if (Std.is(asset, KadabraImage))
+		removeChangeListeners();
+		if (asset != null)
 		{
-			var kImage:KadabraImage = cast asset;
-			typeInput.text = "image";
+			nameItem.visible = true;
+			typeItem.visible = true;
+			transformItem.visible = true;
 
-			pivots.visible = true;
+			nameInput.text = asset.name;
+			if (Std.is(asset, KadabraImage))
+			{
+				var kImage:KadabraImage = cast asset;
+				typeInput.text = "image";
 
-			xPivotInput.text = "" + kImage.pivotX;
-			yPivotInput.text = "" + kImage.pivotY;
-			alphaInput.text = "" + selectedAsset.getChildAt(0).alpha;
-		}
-		else if (Std.is(asset, KadabraPoint))
+				sizeItem.visible = true;
+				sxInput.text = "" + kImage.image.scaleX;
+				syInput.text = "" + kImage.image.scaleY;
+
+				pivots.visible = true;
+
+				xPivotInput.text = "" + kImage.pivotX;
+				yPivotInput.text = "" + kImage.pivotY;
+				alphaInput.text = "" + selectedAsset.getChildAt(0).alpha;
+			}
+			else if (Std.is(asset, KadabraPoint))
+			{
+				typeInput.text = "point";
+				sizeItem.visible = false;
+				pivots.visible = false;
+			}
+			xInput.text = "" + asset.x;
+			yInput.text = "" + asset.y;
+
+			rotationInput.text = "" + asset.rotation;
+		} else
 		{
-			typeInput.text = "point";
-
+			nameItem.visible = false;
+			typeItem.visible = false;
+			transformItem.visible = false;
+			sizeItem.visible = false;
 			pivots.visible = false;
 		}
-		xInput.text = "" + asset.x;
-		yInput.text = "" + asset.y;
-		rotationInput.text = "" + asset.rotation;
+
+		addChangeListeners();
 	}
 
 	function updateData()
 	{
+		removeChangeListeners();
 		xInput.text = "" + selectedAsset.x;
 		yInput.text = "" + selectedAsset.y;
 		rotationInput.text = "" + selectedAsset.rotation;
@@ -199,11 +266,15 @@ class PropertiesPanel extends LayoutGroup
 			alphaInput.text = "" + asset.image.alpha;
 			xPivotInput.text = "" + asset.pivotX;
 			yPivotInput.text = "" + asset.pivotY;
+			sxInput.text = "" + asset.image.scaleX;
+			syInput.text = "" + asset.image.scaleY;
 		}
+		addChangeListeners();
 	}
 
 	function dispatchInputChange(e:Event)
 	{
+		trace("input change");
 		var currentInput = cast(e.target, TextInput);
 
 		if (currentInput.name == "nameInput" || currentInput.name == "typeInput")
@@ -214,6 +285,18 @@ class PropertiesPanel extends LayoutGroup
 			}
 		} else
 		{
+			if (currentInput.name == "aTransform")
+			{
+				var f = Std.parseFloat(currentInput.text);
+				var fm = KadabraUtils.bound(f, 0, 1);
+				if (f != fm)
+				{
+					// avoid re-dispatching the event change
+					currentInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+					currentInput.text = "" + fm;
+					currentInput.addEventListener(Event.CHANGE, dispatchInputChange);
+				}
+			}
 			if (currentInput.text == "")
 			{
 				// avoid re-dispatching the event change

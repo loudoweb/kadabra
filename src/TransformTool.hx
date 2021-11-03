@@ -1,3 +1,4 @@
+import openfl.geom.Rectangle;
 import assets.KadabraImage;
 import assets.KadabraAsset;
 import openfl.geom.Point;
@@ -11,7 +12,7 @@ using utils.KadabraUtils;
 // TODO add flag isDirty to only draw graphics when necessary
 class TransformTool extends Sprite
 {
-	public static var onTransform:lime.app.Event<Sprite->Void> = new lime.app.Event<Sprite->Void>();
+	public static var onTransform:lime.app.Event<Void->Void> = new lime.app.Event<Void->Void>();
 
 	public var isActive(default, null):Bool;
 
@@ -62,14 +63,14 @@ class TransformTool extends Sprite
 	{
 		super();
 
-		gizmoDL = new Gizmo(1, -1);
-		gizmoD = new Gizmo(1, 0);
+		gizmoDL = new Gizmo(-1, 1);
+		gizmoD = new Gizmo(0, 1);
 		gizmoDR = new Gizmo(1, 1);
 		gizmoUL = new Gizmo(-1, -1);
-		gizmoU = new Gizmo(-1, 0);
-		gizmoUR = new Gizmo(-1, 1);
-		gizmoL = new Gizmo(0, -1);
-		gizmoR = new Gizmo(0, 1);
+		gizmoU = new Gizmo(0, -1);
+		gizmoUR = new Gizmo(1, -1);
+		gizmoL = new Gizmo(-1, 0);
+		gizmoR = new Gizmo(1, 0);
 
 		rotationGizmo = new Gizmo(0, 0);
 
@@ -128,8 +129,8 @@ class TransformTool extends Sprite
 			defaultX = asset.x + (pivot.x * cosinus - pivot.y * sinus);
 			defaultY = asset.y + (pivot.x * sinus + pivot.y * cosinus);
 
-			stage.addEventListener(MouseEvent.MOUSE_MOVE, event_onTransform);
-			stage.addEventListener(MouseEvent.MOUSE_UP, event_mouseUp);
+			stage.addEventListener(MouseEvent.MOUSE_MOVE, onMoveGizmo);
+			stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
 		}
 		else if (Std.is(e.target, Pivot))
 		{
@@ -137,16 +138,16 @@ class TransformTool extends Sprite
 			gizmoOffsetX = e.stageX / scaleX - (pivot.x * cosinus - pivot.y * sinus);
 			gizmoOffsetY = e.stageY / scaleY - (pivot.x * sinus + pivot.y * cosinus);
 
-			stage.addEventListener(MouseEvent.MOUSE_MOVE, event_dragPivot);
-			stage.addEventListener(MouseEvent.MOUSE_UP, event_mouseUp);
+			stage.addEventListener(MouseEvent.MOUSE_MOVE, onMovePivot);
+			stage.addEventListener(MouseEvent.MOUSE_UP, onMouseUp);
 		}
 	}
 
-	function event_mouseUp(e:MouseEvent):Void
+	function onMouseUp(e:MouseEvent):Void
 	{
-		stage.removeEventListener(MouseEvent.MOUSE_MOVE, event_onTransform);
-		stage.removeEventListener(MouseEvent.MOUSE_MOVE, event_dragPivot);
-		stage.removeEventListener(MouseEvent.MOUSE_UP, event_mouseUp);
+		stage.removeEventListener(MouseEvent.MOUSE_MOVE, onMoveGizmo);
+		stage.removeEventListener(MouseEvent.MOUSE_MOVE, onMovePivot);
+		stage.removeEventListener(MouseEvent.MOUSE_UP, onMouseUp);
 	}
 
 	function upSide(x:Float, y:Float, a:Point, b:Point)
@@ -154,7 +155,7 @@ class TransformTool extends Sprite
 		return ((b.y - a.y) * (x - a.x) - (b.x - a.x) * (y - a.y)) >= 0;
 	}
 
-	function event_onTransform(e:MouseEvent):Void
+	function onMoveGizmo(e:MouseEvent):Void
 	{
 		if (currentGizmo.isRotate)
 		{
@@ -162,28 +163,28 @@ class TransformTool extends Sprite
 		} else
 		{
 			scale(e);
+
+			var oldGizmosHeight = gizmosHeight;
+			var oldGizmosWidth = gizmosWidth;
+			gizmosHeight = downOrigin - upOrigin;
+			gizmosWidth = rightOrigin - leftOrigin;
+
+			// TODO multi select + other asset type
+			// image dimensions are adjusted and asset coordinates are changed to always keep upOrigin = LeftOrigin = 0
+			var kimage:KadabraImage = cast asset;
+			kimage.image.scaleX = (gizmosWidth / kimage.defaultWidth).roundDecimal(2);
+			kimage.image.scaleY = (gizmosHeight / kimage.defaultHeight).roundDecimal(2);
+			// rotate
+			asset.x += leftOrigin * cosinus - upOrigin * sinus;
+			asset.y += upOrigin * cosinus + leftOrigin * sinus;
+
+			updateGizmos(kimage.image.getBounds(asset), pivot.x, pivot.y);
 		}
-
-		var oldGizmosHeight = gizmosHeight;
-		var oldGizmosWidth = gizmosWidth;
-		gizmosHeight = downOrigin - upOrigin;
-		gizmosWidth = rightOrigin - leftOrigin;
-
-		// TODO multi select + other asset type
-		// image dimensions are adjusted and asset coordinates are changed to always keep upOrigin = LeftOrigin = 0
-		var kimage:KadabraImage = cast asset;
-		kimage.image.width *= gizmosWidth / oldGizmosWidth;
-		kimage.image.height *= gizmosHeight / oldGizmosHeight;
-
-		asset.x += leftOrigin * cosinus - upOrigin * sinus;
-		asset.y += upOrigin * cosinus + leftOrigin * sinus;
-
-		updateGizmos(0, downOrigin - upOrigin, 0, rightOrigin - leftOrigin, pivot.x, pivot.y);
 
 		x = leftOrigin;
 		y = upOrigin;
 
-		onTransform.dispatch(asset);
+		onTransform.dispatch();
 		e.updateAfterEvent();
 	}
 
@@ -224,11 +225,11 @@ class TransformTool extends Sprite
 							- (e.stageX / scaleX - gizmoOffsetX) * sinus;
 						gizmoOffsetY += upOrigin;
 
-						if (upOrigin >= downOrigin)
-						{ // minimum scale
-							gizmoOffsetY -= upOrigin - (downOrigin - 0.1);
-							upOrigin = downOrigin - 0.1;
-						}
+						/*if (upOrigin >= downOrigin)
+							{ // minimum scale
+								gizmoOffsetY -= upOrigin - (downOrigin - 0.1);
+								upOrigin = downOrigin - 0.1;
+						}*/
 
 						if (currentGizmo.horizontal < 0)
 						{ // is a Left gizmo
@@ -250,11 +251,11 @@ class TransformTool extends Sprite
 								+ (e.stageY / scaleY - gizmoOffsetY) * sinus;
 							gizmoOffsetX += leftOrigin;
 
-							if (leftOrigin >= rightOrigin)
-							{ // minimum scale
-								gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
-								leftOrigin = rightOrigin - 0.1;
-							}
+							/*if (leftOrigin >= rightOrigin)
+								{ // minimum scale
+									gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
+									leftOrigin = rightOrigin - 0.1;
+							}*/
 
 							upOrigin += (leftOrigin - oldLeftOrigin) * ratio;
 							gizmoOffsetY += upOrigin;
@@ -266,10 +267,10 @@ class TransformTool extends Sprite
 								- gizmoOffsetX) * cosinus
 								+ (e.stageY / scaleY - gizmoOffsetY) * sinus;
 
-							if (rightOrigin <= leftOrigin)
-							{ // minimum scale
-								rightOrigin = leftOrigin + 0.1;
-							}
+							/*if (rightOrigin <= leftOrigin)
+								{ // minimum scale
+									rightOrigin = leftOrigin + 0.1;
+							}*/
 
 							upOrigin += (oldRightOrigin - rightOrigin) * ratio;
 							gizmoOffsetY += upOrigin;
@@ -285,10 +286,10 @@ class TransformTool extends Sprite
 							- gizmoOffsetY) * cosinus
 							- (e.stageX / scaleX - gizmoOffsetX) * sinus;
 
-						if (downOrigin <= upOrigin)
-						{ // minimum scale
-							downOrigin = upOrigin + 0.1;
-						}
+						/*if (downOrigin <= upOrigin)
+							{ // minimum scale
+								downOrigin = upOrigin + 0.1;
+						}*/
 
 						if (currentGizmo.horizontal < 0)
 						{ // is a Left gizmo
@@ -310,11 +311,11 @@ class TransformTool extends Sprite
 								+ (e.stageY / scaleY - gizmoOffsetY) * sinus;
 							gizmoOffsetX += leftOrigin;
 
-							if (leftOrigin >= rightOrigin)
-							{ // minimum scale
-								gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
-								leftOrigin = rightOrigin - 0.1;
-							}
+							/*if (leftOrigin >= rightOrigin)
+								{ // minimum scale
+									gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
+									leftOrigin = rightOrigin - 0.1;
+							}*/
 
 							downOrigin -= (leftOrigin - oldLeftOrigin) * ratio;
 						}
@@ -325,10 +326,10 @@ class TransformTool extends Sprite
 								- gizmoOffsetX) * cosinus
 								+ (e.stageY / scaleY - gizmoOffsetY) * sinus;
 
-							if (rightOrigin <= leftOrigin)
-							{ // minimum scale
-								rightOrigin = leftOrigin + 0.1;
-							}
+							/*if (rightOrigin <= leftOrigin)
+								{ // minimum scale
+									rightOrigin = leftOrigin + 0.1;
+							}*/
 
 							downOrigin -= (oldRightOrigin - rightOrigin) * ratio;
 						}
@@ -344,11 +345,11 @@ class TransformTool extends Sprite
 						- (e.stageX / scaleX - gizmoOffsetX) * sinus;
 					gizmoOffsetY += upOrigin;
 
-					if (upOrigin >= downOrigin)
-					{
-						gizmoOffsetY -= upOrigin - (downOrigin - 0.1);
-						upOrigin = downOrigin - 0.1;
-					}
+					/*if (upOrigin >= downOrigin)
+						{
+							gizmoOffsetY -= upOrigin - (downOrigin - 0.1);
+							upOrigin = downOrigin - 0.1;
+					}*/
 				}
 				else if (currentGizmo.vertical > 0)
 				{ // is a Down gizmo
@@ -356,10 +357,10 @@ class TransformTool extends Sprite
 						- gizmoOffsetY) * cosinus
 						- (e.stageX / scaleX - gizmoOffsetX) * sinus;
 
-					if (downOrigin <= upOrigin)
-					{
-						downOrigin = upOrigin + 0.1;
-					}
+					/*if (downOrigin <= upOrigin)
+						{
+							downOrigin = upOrigin + 0.1;
+					}*/
 				}
 
 				if (currentGizmo.horizontal < 0)
@@ -369,11 +370,11 @@ class TransformTool extends Sprite
 						+ (e.stageY / scaleY - gizmoOffsetY) * sinus;
 					gizmoOffsetX += leftOrigin;
 
-					if (leftOrigin >= rightOrigin)
-					{
-						gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
-						leftOrigin = rightOrigin - 0.1;
-					}
+					/*if (leftOrigin >= rightOrigin)
+						{
+							gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
+							leftOrigin = rightOrigin - 0.1;
+					}*/
 				}
 				else if (currentGizmo.horizontal > 0)
 				{ // is a Right gizmo
@@ -381,10 +382,10 @@ class TransformTool extends Sprite
 						- gizmoOffsetX) * cosinus
 						+ (e.stageY / scaleY - gizmoOffsetY) * sinus;
 
-					if (rightOrigin <= leftOrigin)
-					{
-						rightOrigin = leftOrigin + 0.1;
-					}
+					/*if (rightOrigin <= leftOrigin)
+						{
+							rightOrigin = leftOrigin + 0.1;
+					}*/
 				}
 			}
 		}
@@ -395,40 +396,41 @@ class TransformTool extends Sprite
 				upOrigin = (e.stageY / scaleY - gizmoOffsetY) * cosinus - (e.stageX / scaleX - gizmoOffsetX) * sinus;
 				gizmoOffsetY += upOrigin;
 
-				if (upOrigin >= downOrigin)
-				{
-					gizmoOffsetY -= upOrigin - (downOrigin - 0.1);
-					upOrigin = downOrigin - 0.1;
-				}
+				/*if (upOrigin >= downOrigin)
+					{
+						gizmoOffsetY -= upOrigin - (downOrigin - 0.1);
+						upOrigin = downOrigin - 0.1;
+				}*/
 			}
 			else if (currentGizmo.vertical > 0)
 			{ // is a Down gizmo
-				downOrigin = (e.stageY / scaleY - gizmoOffsetY) * cosinus - (e.stageX / scaleX - gizmoOffsetX) * sinus;
 
-				if (downOrigin <= upOrigin)
-				{
-					downOrigin = upOrigin + 0.1;
-				}
+				downOrigin = (e.stageY / scaleY - gizmoOffsetY) * cosinus - (e.stageX / scaleX - gizmoOffsetX) * sinus;
+				trace(coef, downOrigin, cosinus, sinus, defaultAngle);
+				/*if (downOrigin <= upOrigin)
+					{
+						downOrigin = upOrigin + 0.1;
+				}*/
 			}
 			else if (currentGizmo.horizontal < 0)
 			{ // is a Left gizmo
 				leftOrigin = (e.stageX / scaleX - gizmoOffsetX) * cosinus + (e.stageY / scaleY - gizmoOffsetY) * sinus;
 				gizmoOffsetX += leftOrigin;
 
-				if (leftOrigin >= rightOrigin)
-				{
-					gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
-					leftOrigin = rightOrigin - 0.1;
-				}
+				/*if (leftOrigin >= rightOrigin)
+					{
+						gizmoOffsetX -= leftOrigin - (rightOrigin - 0.1);
+						leftOrigin = rightOrigin - 0.1;
+				}*/
 			}
 			else if (currentGizmo.horizontal > 0)
 			{ // is a Right gizmo
 				rightOrigin = (e.stageX / scaleX - gizmoOffsetX) * cosinus + (e.stageY / scaleY - gizmoOffsetY) * sinus;
 
-				if (rightOrigin <= leftOrigin)
-				{
-					rightOrigin = leftOrigin + 0.1;
-				}
+				/*if (rightOrigin <= leftOrigin)
+					{
+						rightOrigin = leftOrigin + 0.1;
+				}*/
 			}
 		}
 	}
@@ -437,7 +439,7 @@ class TransformTool extends Sprite
 	{
 		var newAngle = Math.atan((e.stageX / scaleX - gizmoOffsetX) / (e.stageY / scaleY - gizmoOffsetY));
 		newAngle -= defaultAngle;
-		newAngle = newAngle.toDegree().roundDecimal(2);
+		newAngle = Math.round(newAngle.toDegree());
 
 		if (e.stageY / scaleY - gizmoOffsetY >= 0)
 		{
@@ -451,40 +453,43 @@ class TransformTool extends Sprite
 		cosinus = Math.cos(radianRotation);
 		sinus = Math.sin(radianRotation);
 
-		asset.x = defaultX - pivot.x * cosinus + pivot.y * sinus;
-		asset.y = defaultY - pivot.x * sinus - pivot.y * cosinus;
+		asset.x = (defaultX - pivot.x * cosinus + pivot.y * sinus).roundDecimal(2);
+		asset.y = (defaultY - pivot.x * sinus - pivot.y * cosinus).roundDecimal(2);
 	}
 
-	function event_dragPivot(e:MouseEvent):Void
+	function onMovePivot(e:MouseEvent):Void
 	{
-		var pivotX = (e.stageX / scaleX - gizmoOffsetX) * cosinus + (e.stageY / scaleY - gizmoOffsetY) * sinus;
-		var pivotY = (e.stageY / scaleY - gizmoOffsetY) * cosinus - (e.stageX / scaleX - gizmoOffsetX) * sinus;
+		var kImage:KadabraImage = cast asset;
+
+		var pivotX = asset.mouseX * cosinus + asset.mouseY * sinus;
+		var pivotY = asset.mouseY * cosinus - asset.mouseX * sinus;
 
 		// minimum & maximum positions
 		pivotX = pivotX.bound(0, gizmosWidth);
 		pivotY = pivotY.bound(0, gizmosHeight);
 
 		// TODO group
-		var kImage:KadabraImage = cast asset;
+
 		kImage.pivotX = (pivotX / gizmosWidth).roundDecimal(2);
 		kImage.pivotY = (pivotY / gizmosHeight).roundDecimal(2);
 		pivot.setPivot(kImage.pivotX, kImage.pivotY);
 		pivot.updatePos(gizmosWidth, gizmosHeight);
 
-		onTransform.dispatch(asset);
+		onTransform.dispatch();
 		e.updateAfterEvent();
 	}
 
-	public function updateGizmos(upOrigin:Float, downOrigin:Float, leftOrigin:Float, rightOrigin:Float, pivotX:Float,
-			pivotY:Float)
+	public function updateGizmos(bounds:Rectangle, pivotX:Float, pivotY:Float)
 	{
-		this.upOrigin = upOrigin;
-		this.downOrigin = downOrigin;
-		this.leftOrigin = leftOrigin;
-		this.rightOrigin = rightOrigin;
+		this.upOrigin = bounds.top;
+		this.downOrigin = bounds.bottom;
+		this.leftOrigin = bounds.left;
+		this.rightOrigin = bounds.right;
 
 		this.gizmosHeight = downOrigin - upOrigin;
 		this.gizmosWidth = rightOrigin - leftOrigin;
+
+		trace(leftOrigin, rightOrigin, upOrigin, downOrigin, pivotX, pivotY);
 
 		var ratio = this.gizmosHeight / this.gizmosWidth;
 
@@ -534,6 +539,9 @@ class TransformTool extends Sprite
 			isActive = true;
 			parent.addChild(this);
 			this.asset = asset;
+			radianRotation = asset.rotation.toRadians();
+			cosinus = Math.cos(radianRotation);
+			sinus = Math.sin(radianRotation);
 			InputPoll.onKeyDown.add(onKeyDown);
 			this.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown, true);
 		}
@@ -541,9 +549,6 @@ class TransformTool extends Sprite
 
 	public function unactive():Void
 	{
-		if (isActive)
-			return;
-
 		if (parent != null)
 			parent.removeChild(this);
 

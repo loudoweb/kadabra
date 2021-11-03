@@ -39,12 +39,9 @@ class KadabraScene extends Sprite
 
 	public var offsets:Array<Float>;
 
-	public var selectedAssets:List<KadabraAsset>;
+	public var selectedAssets:Array<KadabraAsset>;
 
 	var transformTool:TransformTool;
-
-	var draggedPoint:KadabraPoint;
-	var pointsNumber = 0;
 
 	public var dragging = false;
 
@@ -60,6 +57,7 @@ class KadabraScene extends Sprite
 	public static var onChildRemoved:Event<Sprite->Void>;
 	public static var onAssetSelected:Event<Sprite->Void>;
 	public static var onAssetUpdated:Event<Void->Void>;
+	public static var onAssetNameChanged:Event<String->String->Void>;
 
 	public function new()
 	{
@@ -74,7 +72,7 @@ class KadabraScene extends Sprite
 		imageContainer = new Sprite();
 
 		offsets = [];
-		selectedAssets = new List<KadabraAsset>();
+		selectedAssets = [];
 
 		transformTool = new TransformTool();
 
@@ -82,8 +80,9 @@ class KadabraScene extends Sprite
 		onChildRemoved = new Event<Sprite->Void>();
 		onAssetSelected = new Event<Sprite->Void>();
 		onAssetUpdated = new Event<Void->Void>();
+		onAssetNameChanged = new Event<String->String->Void>();
 
-		name = "SCENE";
+		name = "KSCENE";
 	}
 
 	function construct():Void
@@ -95,6 +94,7 @@ class KadabraScene extends Sprite
 		background.height = 1080;
 		background.fill = KadabraUtils.SCENE_FILL;
 		background.mouseEnabled = false;
+		background.name = "KSCENE-BACKGROUND";
 
 		addChild(background);
 
@@ -106,7 +106,7 @@ class KadabraScene extends Sprite
 	function onAddedtoStage(e:OpenflEvent)
 	{
 		stage.window.onDropFile.add(dragNDrop);
-		stage.addEventListener(MouseEvent.MOUSE_DOWN, event_startDragging);
+		this.parent.addEventListener(MouseEvent.MOUSE_DOWN, event_startDragging, true);
 		InputPoll.onKeyDown.add(onKeyDown);
 
 		ToolPanel.onButtonChange.add(onButtonChange);
@@ -124,19 +124,32 @@ class KadabraScene extends Sprite
 				var image = new KadabraImage(bitmapdata);
 				imageContainer.addChild(image);
 				var splitPath = path.split("\\");
-				image.name = splitPath[splitPath.length - 1];
+				var _name = splitPath[splitPath.length - 1];
+				_name = _name.substring(0, _name.length - 4);
+				image.name = _name;
 
+				HierarchyPanel.onAssetSelected.remove(onHierarchySelected);
 				unselectAsset();
-
-				var imagePoint = new Point(stage.mouseX, stage.mouseY);
-				imagePoint = globalToLocal(imagePoint);
-
-				image.x = imagePoint.x;
-				image.y = imagePoint.y;
-
 				onChildAdded.dispatch(image);
 				selectAsset(image);
+				HierarchyPanel.onAssetSelected.add(onHierarchySelected);
+
+				// we don't have correct mouseX mouseY here, so we need to wait
+				stage.addEventListener(openfl.events.Event.ENTER_FRAME, placeOnNextFrame);
 			});
+		}
+	}
+
+	function placeOnNextFrame(e:openfl.events.Event):Void
+	{
+		trace("place on next frame", imageContainer.mouseX, imageContainer.mouseY);
+		stage.removeEventListener(openfl.events.Event.ENTER_FRAME, placeOnNextFrame);
+		var imagePoint = new Point(imageContainer.mouseX, imageContainer.mouseY);
+
+		for (image in selectedAssets)
+		{
+			image.x = imagePoint.x;
+			image.y = imagePoint.y;
 		}
 	}
 
@@ -144,75 +157,60 @@ class KadabraScene extends Sprite
 	{
 		trace("start", cast(e.target, DisplayObject).name, e.currentTarget);
 
-		// drag
-		if (Std.is(e.target, KadabraAsset))
+		var _target:DisplayObject = cast e.target;
+		trace(_target.name, e.localX, e.localY, scrollX, scrollY);
+
+		if (ToolPanel.selectedButton == "icon-point" && this.hitTestPoint(e.localX, e.localY))
 		{
-			var kasset:KadabraAsset = cast e.target;
+			_target = addDraggedPoint();
+		}
+
+		// drag
+		if (Std.isOfType(_target, KadabraAsset))
+		{
+			var kasset:KadabraAsset = cast _target;
 
 			stage.addEventListener(MouseEvent.MOUSE_UP, event_stopDragging);
 			stage.addEventListener(MouseEvent.RELEASE_OUTSIDE, event_releaseOutside);
 
 			switch (kasset.type)
 			{
-				case IMAGE:
-					if (selectedAssets.isEmpty())
+				default:
+					if (selectedAssets.length == 0)
 					{
-						selectedAssets.add(cast(e.target, KadabraImage));
-						cast(selectedAssets.last(), KadabraImage).select();
+						selectAsset(kasset);
+						stage.addEventListener(MouseEvent.MOUSE_MOVE, dragAsset);
 					}
-
-						// if (!e.shiftKey)
-					// { // if Shift is pressed while clicking an image, it is added to the selection
-					else if ((selectedAssets.filter(function(image)
+					else if (selectedAssets.indexOf(kasset) == -1)
 					{ // if the clicked image is different from the selected object, it is selected
-						return (image == cast(e.target, KadabraImage));
-					})).isEmpty())
+						unselectAsset();
+						selectAsset(kasset);
+						stage.addEventListener(MouseEvent.MOUSE_MOVE, dragAsset);
+					} else
 					{
-						for (asset in selectedAssets)
-						{
-							asset.unselect();
-						}
-						selectedAssets.clear();
-						selectedAssets.add(cast(e.target, KadabraImage));
-						cast(selectedAssets.last(), KadabraImage).select();
+						// already selected, allow drag
+						stage.addEventListener(MouseEvent.MOUSE_MOVE, dragAsset);
 					}
+					// if (!e.shiftKey)
+					// { // if Shift is pressed while clicking an image, it is added to the selection
 					// }
+					// clear offsets
+
+					var i = 0;
 					for (image in selectedAssets)
 					{
-						offsets.push(e.stageX / scaleX - image.x);
-						offsets.push(e.stageY / scaleY - image.y);
+						offsets[i] = imageContainer.mouseX - image.x;
+						offsets[i + 1] = imageContainer.mouseY - image.y;
+						i += 2;
 					}
-
-					onAssetSelected.dispatch(selectedAssets.first());
-					stage.addEventListener(MouseEvent.MOUSE_MOVE, dragAsset);
-
-				case POINT:
-					if (selectedAssets.isEmpty())
-					{
-						selectedAssets.add(cast(e.target, KadabraPoint));
-						cast(selectedAssets.last(), KadabraPoint).select();
-					}
-					else if ((selectedAssets.filter(function(image)
-					{ // if the clicked point is different from the selected object, it is selected
-						return (image == cast(e.target, KadabraPoint));
-					})).isEmpty())
-					{
-						for (asset in selectedAssets)
-						{
-							asset.unselect();
-						}
-						selectedAssets.clear();
-						selectedAssets.add(cast(e.target, KadabraPoint));
-						cast(selectedAssets.last(), KadabraPoint).select();
-					}
-
-					onAssetSelected.dispatch(selectedAssets.first());
-					stage.addEventListener(MouseEvent.MOUSE_MOVE, dragAsset);
-				default:
-					trace('not implemented');
+					trace(offsets.length, selectedAssets.length);
 			}
+		} else if (Std.isOfType(_target, Gizmo) || Std.isOfType(_target, Pivot))
+		{
+			trace('transform');
 		} else
 		{
+			// unselect if click elsewhere on scene (keep selection if click on other part of ui)
 			unselectAsset();
 		}
 	}
@@ -225,7 +223,7 @@ class KadabraScene extends Sprite
 		stage.removeEventListener(MouseEvent.MOUSE_MOVE, dragAsset);
 		offsets = [];
 
-		if (!selectedAssets.isEmpty())
+		if (selectedAssets.length > 0)
 		{
 			for (asset in selectedAssets)
 			{
@@ -245,24 +243,22 @@ class KadabraScene extends Sprite
 
 	function dragAsset(e:MouseEvent):Void
 	{
-		if (selectedAssets.isEmpty())
-		{ // pres error when the draggedPoint is deleted in onButtonChange
+		trace("drag asset");
+		if (selectedAssets.length == 0)
+		{ // avoid error when the draggedPoint is deleted in HierarchyPanel onButtonChange
 			stage.removeEventListener(MouseEvent.MOUSE_MOVE, dragAsset);
 		}
 		else
 		{
-			if (!dragging)
-			{
-				dragging = true;
-
-				offsets.push(-mouseX + e.stageX);
-				offsets.push(-mouseY + e.stageY);
-
-				selectedAssets.first().removeChild(transformTool);
-			}
-
 			if (InputPoll.isMouseDown)
 			{
+				if (!dragging)
+				{
+					dragging = true;
+
+					selectedAssets[0].removeChild(transformTool);
+				}
+
 				var containerPoint = new Point(scrollX, scrollY);
 				containerPoint = parent.localToGlobal(containerPoint);
 
@@ -297,10 +293,11 @@ class KadabraScene extends Sprite
 				}
 			}
 			var i = 0;
+			trace(offsets.length, selectedAssets.length);
 			for (asset in selectedAssets)
 			{
-				asset.x = e.stageX / scaleX - offsets[i * 2];
-				asset.y = e.stageY / scaleY - offsets[i * 2 + 1];
+				asset.x = imageContainer.mouseX - offsets[i];
+				asset.y = imageContainer.mouseY - offsets[i + 1];
 
 				if (asset.x < -x)
 				{
@@ -320,7 +317,7 @@ class KadabraScene extends Sprite
 					asset.y = background.height + y - asset.height;
 				}
 
-				++i;
+				i += 2;
 			}
 
 			onAssetUpdated.dispatch();
@@ -333,7 +330,7 @@ class KadabraScene extends Sprite
 		switch (key.charCode)
 		{
 			case(KeyCode.DELETE):
-				if (!selectedAssets.isEmpty())
+				if (selectedAssets.length > 0)
 				{
 					for (asset in selectedAssets)
 					{
@@ -347,14 +344,31 @@ class KadabraScene extends Sprite
 		}
 	}
 
-	function event_selectAsset(e:MouseEvent):Void
+	function selectAsset(display:DisplayObject):Void
 	{
-		trace("select 'click'", cast(e.target, DisplayObject).name, e.currentTarget);
-		selectAsset(e.target);
-	}
+		/*if (ToolPanel.selectedButton == "icon-point")
+			{
+				trace('hello');
+				addDraggedPoint();
+				dragging = false;
+			} else
+			{ */
+		var kasset:KadabraAsset = null;
+		if (Std.is(display, KadabraImage))
+		{
+			kasset = cast display;
+		} else if (Std.is(display, KadabraPoint))
+		{
+			kasset = cast display;
+		}
 
-	function selectAsset(display:DisplayObject, dispatch:Bool = true):Void
-	{
+		selectedAssets.push(kasset);
+		trace("select asset", offsets.length, selectedAssets.length);
+		onAssetSelected.dispatch(kasset);
+		kasset.select();
+		updateGizmos();
+		// }
+
 		/*if (!dragging && !scaling)
 			{
 				if (Std.is(display, KadabraImage))
@@ -364,7 +378,7 @@ class KadabraScene extends Sprite
 					// {
 					//	if (!(cast(display, KadabraImage)).isSelected)
 					//	{
-					//		selectedAssets.add(cast(display, KadabraImage));
+					//		selectedAssets.push(cast(display, KadabraImage));
 					//		selectedAssets.last().select();
 					//	}
 					// }
@@ -382,7 +396,7 @@ class KadabraScene extends Sprite
 						}
 					}
 					selectedAssets.clear();
-					selectedAssets.add(kImage);
+					selectedAssets.push(kImage);
 					kImage.select();
 
 					if (dispatch)
@@ -408,14 +422,14 @@ class KadabraScene extends Sprite
 						}
 					}
 					selectedAssets.clear();
-					selectedAssets.add(kPoint);
+					selectedAssets.push(kPoint);
 					kPoint.select();
 
-					onAssetSelected.dispatch(selectedAssets.first());
+					onAssetSelected.dispatch(selectedAssets[0]);
 				}
 				else if (!Std.is(display, Gizmo))
 				{
-					if (!selectedAssets.isEmpty())
+					if (selectedAssets.length > 0)
 					{
 						for (asset in selectedAssets)
 						{
@@ -437,12 +451,6 @@ class KadabraScene extends Sprite
 			else
 			{ */
 
-		if (ToolPanel.selectedButton == "icon-point")
-		{
-			addDraggedPoint();
-			dragging = false;
-		}
-
 		// }
 	}
 
@@ -453,17 +461,19 @@ class KadabraScene extends Sprite
 			asset.unselect();
 		}
 		transformTool.unactive();
-		selectedAssets.clear();
+		selectedAssets.splice(0, selectedAssets.length);
+		onAssetSelected.dispatch(null);
 	}
 
 	function onHierarchySelected(name):Void
 	{
 		trace("coucou");
+		unselectAsset();
 		for (i in 0...imageContainer.numChildren)
 		{
 			if (imageContainer.getChildAt(i).name == name)
 			{
-				selectAsset(imageContainer.getChildAt(i), false);
+				selectAsset(imageContainer.getChildAt(i));
 				break;
 			}
 		}
@@ -472,21 +482,21 @@ class KadabraScene extends Sprite
 	function updateGizmos()
 	{
 		// puts gizmos on the corners and in the middle of the sides of the selection
-		if (selectedAssets.isEmpty())
+		if (selectedAssets.length == 0)
 		{
 			if (transformTool.parent != null)
 			{
 				transformTool.parent.removeChild(transformTool);
 			}
 		}
-		else if (Std.is(selectedAssets.first(), KadabraImage))
+		else if (Std.is(selectedAssets[0], KadabraImage))
 		{
 			// TODO multi select
-			var kadabraImage:KadabraImage = cast selectedAssets.first();
+			var kadabraImage:KadabraImage = cast selectedAssets[0];
 			transformTool.active(kadabraImage, kadabraImage);
-
-			transformTool.updateGizmos(kadabraImage.image.y, kadabraImage.image.y + kadabraImage.image.height,
-				kadabraImage.image.x, kadabraImage.image.x + kadabraImage.image.width, kadabraImage.pivotX,
+			trace(kadabraImage.image.getBounds(kadabraImage));
+			trace(kadabraImage.image.x + kadabraImage.width * kadabraImage.image.scaleX);
+			transformTool.updateGizmos(kadabraImage.image.getBounds(kadabraImage), kadabraImage.pivotX,
 				kadabraImage.pivotY);
 		}
 	}
@@ -499,85 +509,83 @@ class KadabraScene extends Sprite
 
 	function onButtonChange(newSelectedButton:String)
 	{
-		if (newSelectedButton == "icon-point")
-		{
-			addDraggedPoint();
-		}
-		else if (ToolPanel.selectedButton == "icon-point")
-		{
-			onChildRemoved.dispatch(draggedPoint);
-			removeChild(draggedPoint);
-			selectedAssets.clear();
-			--pointsNumber;
-		}
+		/*if (newSelectedButton == "icon-point")
+			{
+				addDraggedPoint();
+			}
+			else if (ToolPanel.selectedButton == "icon-point")
+			{
+				// onChildRemoved.dispatch(draggedPoint);
+				//	removeChild(draggedPoint);
+				// selectedAssets.clear();
+		}*/
 	}
 
-	function addDraggedPoint():Void
+	function addDraggedPoint():KadabraPoint
 	{
-		draggedPoint = new KadabraPoint();
-		++pointsNumber;
-		draggedPoint.name = "point" + pointsNumber;
-		trace(draggedPoint.name);
-
-		if (!selectedAssets.isEmpty())
-		{
-			for (asset in selectedAssets)
-			{
-				if (Std.is(asset, KadabraImage))
-				{
-					cast(asset, KadabraImage).unselect();
-				}
-				else if (Std.is(asset, KadabraPoint))
-				{
-					cast(asset, KadabraPoint).unselect();
-				}
-			}
-			selectedAssets.clear();
-			updateGizmos();
-		}
-
-		selectedAssets.add(draggedPoint);
-
-		onAssetSelected.dispatch(draggedPoint);
-
-		stage.addEventListener(MouseEvent.MOUSE_MOVE, dragAsset);
+		var draggedPoint = new KadabraPoint();
+		draggedPoint.name = "point";
 
 		imageContainer.addChild(draggedPoint);
 
 		onChildAdded.dispatch(draggedPoint);
+
+		selectAsset(draggedPoint);
+
+		return draggedPoint;
 	}
 
 	function onInputChange(input:TextInput)
 	{
-		if (!selectedAssets.isEmpty())
+		trace('input change');
+		var i = 0;
+		for (currentAsset in selectedAssets)
 		{
 			switch (input.name)
 			{
 				case "nameInput":
-					selectedAssets.first().name = input.text;
+					var _name = currentAsset.name;
+					currentAsset.name = input.text;
+					onAssetNameChanged.dispatch(_name, i == 0 ? input.text : input.text + i);
 				case "xTransform":
-					selectedAssets.first().x = Std.parseFloat(input.text);
+					currentAsset.x = Std.parseFloat(input.text);
 				case "yTransform":
-					selectedAssets.first().y = Std.parseFloat(input.text);
+					currentAsset.y = Std.parseFloat(input.text);
+				case "sxTransform":
+					if (Std.is(currentAsset, KadabraImage))
+					{
+						var kImage:KadabraImage = cast currentAsset;
+						kImage.image.scaleX = Std.parseFloat(input.text);
+						updateGizmos();
+					}
+				case "syTransform":
+					if (Std.is(currentAsset, KadabraImage))
+					{
+						var kImage:KadabraImage = cast currentAsset;
+						kImage.image.scaleY = Std.parseFloat(input.text);
+						updateGizmos();
+					}
 				case "rTransform":
-					selectedAssets.first().rotation = Std.parseFloat(input.text);
+					currentAsset.rotation = Std.parseFloat(input.text);
 				case "aTransform":
-					var currentAsset = Std.is(selectedAssets.first(),
-						KadabraImage) ? selectedAssets.first().getChildAt(0) : selectedAssets.first();
+					var currentAsset = Std.is(currentAsset, KadabraImage) ? currentAsset.getChildAt(0) : currentAsset;
 					currentAsset.alpha = Std.parseFloat(input.text);
 				case "xPivot":
-					if (Std.is(selectedAssets.first(), KadabraImage))
+					if (Std.is(currentAsset, KadabraImage))
 					{
-						var kImage:KadabraImage = cast selectedAssets.first();
+						var kImage:KadabraImage = cast currentAsset;
 						kImage.pivotX = Std.parseFloat(input.text);
+						updateGizmos();
 					}
 				case "yPivot":
-					if (Std.is(selectedAssets.first(), KadabraImage))
+					if (Std.is(currentAsset, KadabraImage))
 					{
-						var kImage:KadabraImage = cast selectedAssets.first();
+						var kImage:KadabraImage = cast currentAsset;
 						kImage.pivotY = Std.parseFloat(input.text);
+						updateGizmos();
 					}
 			}
+			i++;
 		}
 	}
 }

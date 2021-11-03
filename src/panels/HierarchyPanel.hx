@@ -15,6 +15,7 @@ class HierarchyPanel extends LayoutGroup
 	public static var onAssetSelected:lime.app.Event<String->Void> = new lime.app.Event<String->Void>();
 
 	var tree:TreeView;
+	var dispatch:Bool;
 
 	public function new():Void
 	{
@@ -23,6 +24,8 @@ class HierarchyPanel extends LayoutGroup
 		width = 180;
 		minWidth = 180;
 		maxWidth = 800;
+
+		dispatch = true;
 
 		var _layout = new VerticalLayout();
 		_layout.horizontalAlign = LEFT;
@@ -46,11 +49,14 @@ class HierarchyPanel extends LayoutGroup
 		KadabraScene.onChildAdded.add(addAsset);
 		KadabraScene.onChildRemoved.add(removeAsset);
 		KadabraScene.onAssetSelected.add(selectAsset);
+		KadabraScene.onAssetNameChanged.add(onNameChanged);
 	}
 
 	public function addAsset(asset:Sprite):Void
 	{
-		tree.dataProvider.addAt(asset.name, [0]);
+		var name = handleAssetName(asset.name);
+		asset.name = name;
+		tree.dataProvider.addAt(name, [0]);
 	}
 
 	public function removeAsset(asset:Sprite):Void
@@ -60,7 +66,33 @@ class HierarchyPanel extends LayoutGroup
 
 	public function selectAsset(asset:Sprite):Void
 	{
-		tree.selectedItem = asset.name;
+		tree.removeEventListener(Event.CHANGE, treeView_changeHandler);
+		if (asset != null)
+			tree.selectedItem = asset.name;
+		else
+			tree.selectedItem = null;
+		tree.addEventListener(Event.CHANGE, treeView_changeHandler);
+	}
+
+	public function onNameChanged(oldName:String, newName:String):Void
+	{
+		if (tree.dataProvider.contains(oldName))
+		{
+			var index = tree.dataProvider.locationOf(oldName);
+			tree.dataProvider.set(index, newName);
+		}
+	}
+
+	public function handleAssetName(name:String):String
+	{
+		var _finalName = name;
+		var i = 2;
+		while (tree.dataProvider.contains(_finalName))
+		{
+			_finalName = name + Std.string(i);
+			i++;
+		}
+		return _finalName;
 	}
 
 	function treeView_changeHandler(event:Event):Void

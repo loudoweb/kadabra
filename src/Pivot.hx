@@ -16,11 +16,11 @@ class Pivot extends Sprite
 		buttonMode = true;
 
 		graphics.beginFill(0x000000, 1);
-		graphics.drawCircle(0, 0, 4);
+		graphics.drawCircle(0, 0, 5);
 		graphics.endFill();
 
 		graphics.beginFill(0xFFFFFF, 1);
-		graphics.drawCircle(0, 0, 3);
+		graphics.drawCircle(0, 0, 4);
 		graphics.endFill();
 	}
 

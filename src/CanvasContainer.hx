@@ -11,6 +11,8 @@ import feathers.controls.ScrollContainer;
 
 class CanvasContainer extends ScrollContainer
 {
+	public var onZoom = new lime.app.Event<Float->Void>();
+
 	var canvas:RectangleSkin;
 
 	public var scene:KadabraScene;
@@ -26,9 +28,12 @@ class CanvasContainer extends ScrollContainer
 	{
 		super();
 
+		name = "KCONTAINER";
+
 		scene = new KadabraScene();
 
 		canvas = new RectangleSkin();
+		canvas.name = "KCANVAS";
 		canvas.fill = KadabraUtils.CANVAS_FILL;
 
 		if (scene.background.width < 800)
@@ -140,61 +145,43 @@ class CanvasContainer extends ScrollContainer
 		{
 			e.stopImmediatePropagation();
 
-			var canvasMousePoint = new Point(e.stageX, e.stageY);
-			canvasMousePoint = canvas.globalToLocal(canvasMousePoint);
+			// mouse position
+			var pt = new Point(e.stageX, e.stageY);
+			pt = canvas.globalToLocal(pt);
 
-			var containerMousePoint = new Point(e.stageX, e.stageY);
-			containerMousePoint = globalToLocal(containerMousePoint);
+			// zoom
+			var preZoom = zoomValue;
+			zoomValue += (e.delta / 25);
+			// max zoom
+			if (zoomValue > 4)
+				zoomValue = 4;
+			// min zoom
+			if (zoomValue < width / canvas.width * canvas.scaleX)
+				zoomValue = width / canvas.width * canvas.scaleX;
 
-			if (canvas.width >= width - scrollBarY.width && canvas.width >= height - scrollBarX.height)
-			{
-				var newZoomValue = zoomValue + (e.delta / 100);
-				if (newZoomValue <= minZoomValue)
-				{
-					scene.x *= (newZoomValue / zoomValue);
-					scene.y *= (newZoomValue / zoomValue);
-					zoomValue = newZoomValue;
-					canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
-				}
-			}
+			// scale
+			scene.scaleX = scene.scaleY = canvas.scaleX = canvas.scaleY = zoomValue;
 
-			var visibleWidth = width;
-			if (maxScrollY > 0)
-			{
-				visibleWidth -= scrollBarY.width;
-			}
-			if (canvas.width < visibleWidth)
-			{
-				var newZoomValue = visibleWidth * zoomValue / canvas.width;
-				scene.x *= (newZoomValue / zoomValue);
-				scene.y *= (newZoomValue / zoomValue);
-				zoomValue = newZoomValue;
-				canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
-			}
+			// center scene
+			scene.x = (canvas.width - scene.width) * 0.5;
+			scene.y = (canvas.height - scene.height) * 0.5;
+			// scroll to mouse position
+			refreshViewPortBoundsForLayout();
+			restrictedScrollX += (pt.x * zoomValue - pt.x * preZoom);
+			restrictedScrollY += (pt.y * zoomValue - pt.y * preZoom);
+			refreshScrollRect();
 
-			var visibleHeight = height;
-			if (maxScrollX > 0)
-			{
-				visibleHeight -= scrollBarX.height;
-			}
-			if (canvas.height < visibleHeight)
-			{
-				var newZoomValue = visibleHeight * zoomValue / canvas.height;
-				scene.x *= (newZoomValue / zoomValue);
-				scene.y *= (newZoomValue / zoomValue);
-				zoomValue = newZoomValue;
-				canvas.scaleX = canvas.scaleY = scene.scaleX = scene.scaleY = zoomValue;
-			}
-
-			// zoom towards mouse position
-			restrictedScrollX = canvasMousePoint.x * zoomValue - containerMousePoint.x;
-			restrictedScrollY = canvasMousePoint.y * zoomValue - containerMousePoint.y;
-		}
-		else if (InputPoll.isKeyDown(Keyboard.R))
+			onZoom.dispatch(zoomValue);
+		} else if (InputPoll.isKeyDown(Keyboard.R))
 		{
 			e.stopImmediatePropagation();
 			// temp ?
 			resetZoom();
+		} else if (InputPoll.isKeyDown(Keyboard.F))
+		{
+			e.stopImmediatePropagation();
+			// temp ?
+			fitCanvas();
 		}
 	}
 

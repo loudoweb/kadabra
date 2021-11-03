@@ -8,7 +8,7 @@ class Gizmo extends Sprite
 
 	public var isRotate:Bool;
 
-	public function new(vertical:Int, horizontal:Int)
+	public function new(horizontal:Int, vertical:Int)
 	{
 		super();
 
@@ -21,7 +21,10 @@ class Gizmo extends Sprite
 		buttonMode = true;
 
 		graphics.beginFill(KadabraUtils.KADABRA_COLOR, 1);
-		graphics.drawRect(-4, -4, 8, 8);
+		if (!isRotate)
+			graphics.drawRect(-5, -5, 10, 10);
+		else
+			graphics.drawCircle(0, 0, 5);
 		graphics.endFill();
 	}
 }

@@ -61,7 +61,7 @@ class UIFactory
 		if (iLayout != null)
 			input.layoutData = iLayout;
 		if (useOnlyNumbers)
-			input.restrict = "0-9\\.";
+			input.restrict = "0-9-\\.";
 
 		item.addChild(txt);
 		item.addChild(input);
