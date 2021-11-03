@@ -16,10 +16,10 @@ class KadabraImage extends KadabraAsset
 
 	public var image:Bitmap;
 
-	public var defaultHeight:Float;
-	public var defaultWidth:Float;
-	public var defaultX:Float;
-	public var defaultY:Float;
+	public var defaultHeight(default, null):Float;
+	public var defaultWidth(default, null):Float;
+	public var defaultX(default, null):Float;
+	public var defaultY(default, null):Float;
 
 	public var pivotX:Float;
 	public var pivotY:Float;

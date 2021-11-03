@@ -16,6 +16,10 @@ class TransformTool extends Sprite
 
 	public var isActive(default, null):Bool;
 
+	// mode
+	public var hasPivot:Bool;
+	public var hasScale:Bool;
+
 	public var asset(default, null):KadabraAsset;
 
 	public var gizmosHeight:Float;
@@ -46,6 +50,7 @@ class TransformTool extends Sprite
 
 	public var scaling = false;
 
+	// asset
 	var gizmoUL:Gizmo;
 	var gizmoU:Gizmo;
 	var gizmoUR:Gizmo;
@@ -157,6 +162,7 @@ class TransformTool extends Sprite
 
 	function onMoveGizmo(e:MouseEvent):Void
 	{
+		trace(currentGizmo.horizontal, currentGizmo.vertical);
 		if (currentGizmo.isRotate)
 		{
 			rotate(e);
@@ -452,27 +458,39 @@ class TransformTool extends Sprite
 		cosinus = Math.cos(radianRotation);
 		sinus = Math.sin(radianRotation);
 
-		asset.x = (defaultX - pivot.x * cosinus + pivot.y * sinus).roundDecimal(2);
-		asset.y = (defaultY - pivot.x * sinus - pivot.y * cosinus).roundDecimal(2);
+		if (hasPivot)
+		{
+			var kImage:KadabraImage = cast asset;
+			asset.x = (defaultX
+				- (pivot.X * kImage.image.width * kImage.image.scaleX.sign()) * cosinus
+				+ (pivot.Y * kImage.image.height * kImage.image.scaleY.sign()) * sinus).roundDecimal(2);
+			asset.y = (defaultY
+				- (pivot.X * kImage.image.width * kImage.image.scaleX.sign()) * sinus
+				- (pivot.Y * kImage.image.height * kImage.image.scaleY.sign()) * cosinus).roundDecimal(2);
+		}
 	}
 
 	function onMovePivot(e:MouseEvent):Void
 	{
 		var kImage:KadabraImage = cast asset;
 		trace(asset.mouseX, kImage.image.mouseX);
-		var pivotX = asset.mouseX * cosinus + asset.mouseY * sinus;
-		var pivotY = asset.mouseY * cosinus - asset.mouseX * sinus;
+
+		var pivotX = kImage.image.mouseX * cosinus + kImage.image.mouseY * sinus;
+		var pivotY = kImage.image.mouseY * cosinus - kImage.image.mouseX * sinus;
 
 		// minimum & maximum positions
 		pivotX = pivotX.bound(0, gizmosWidth);
 		pivotY = pivotY.bound(0, gizmosHeight);
 
 		// TODO group
-
 		kImage.pivotX = (pivotX / gizmosWidth).roundDecimal(2);
 		kImage.pivotY = (pivotY / gizmosHeight).roundDecimal(2);
+
+		var signX = kImage.image.scaleX.sign();
+		var signY = kImage.image.scaleY.sign();
+
 		pivot.setPivot(kImage.pivotX, kImage.pivotY);
-		pivot.updatePos(gizmosWidth, gizmosHeight);
+		pivot.updatePos(gizmosWidth * signX, gizmosHeight * signY);
 
 		onTransform.dispatch();
 		e.updateAfterEvent();
@@ -514,10 +532,14 @@ class TransformTool extends Sprite
 		rotationGizmo.x = gizmosWidth / 2;
 		rotationGizmo.y = -50;
 
-		pivot.updatePos(gizmosWidth, gizmosHeight);
+		var kImage:KadabraImage = cast asset;
+		var signX = kImage.image.scaleX.sign();
+		var signY = kImage.image.scaleY.sign();
+
+		pivot.updatePos(gizmosWidth * signX, gizmosHeight * signY);
 
 		graphics.clear();
-		graphics.lineStyle(1, 0, 1);
+		graphics.lineStyle(1, hasScale ? 0 : KadabraUtils.KADABRA_COLOR, 1);
 		graphics.moveTo(0, 0);
 		graphics.lineTo(gizmosWidth, 0);
 		graphics.lineTo(gizmosWidth, gizmosHeight);
@@ -543,6 +565,26 @@ class TransformTool extends Sprite
 			sinus = Math.sin(radianRotation);
 			InputPoll.onKeyDown.add(onKeyDown);
 			this.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown, true);
+
+			switch (asset.type)
+			{
+				case POINT:
+					hasPivot = false;
+					hasScale = false;
+				default:
+					hasPivot = true;
+					hasScale = true;
+			}
+
+			pivot.visible = hasPivot;
+			gizmoUL.visible = hasScale;
+			gizmoU.visible = hasScale;
+			gizmoUR.visible = hasScale;
+			gizmoL.visible = hasScale;
+			gizmoR.visible = hasScale;
+			gizmoDL.visible = hasScale;
+			gizmoD.visible = hasScale;
+			gizmoDR.visible = hasScale;
 		}
 	}
 
