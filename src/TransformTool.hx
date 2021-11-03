@@ -406,7 +406,6 @@ class TransformTool extends Sprite
 			{ // is a Down gizmo
 
 				downOrigin = (e.stageY / scaleY - gizmoOffsetY) * cosinus - (e.stageX / scaleX - gizmoOffsetX) * sinus;
-				trace(coef, downOrigin, cosinus, sinus, defaultAngle);
 				/*if (downOrigin <= upOrigin)
 					{
 						downOrigin = upOrigin + 0.1;
@@ -460,7 +459,7 @@ class TransformTool extends Sprite
 	function onMovePivot(e:MouseEvent):Void
 	{
 		var kImage:KadabraImage = cast asset;
-
+		trace(asset.mouseX, kImage.image.mouseX);
 		var pivotX = asset.mouseX * cosinus + asset.mouseY * sinus;
 		var pivotY = asset.mouseY * cosinus - asset.mouseX * sinus;
 

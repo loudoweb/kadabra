@@ -32,6 +32,8 @@ class PropertiesPanel extends LayoutGroup
 	var xInput:TextInput;
 	var yInput:TextInput;
 	var sizeItem:LayoutGroup;
+	var wInput:TextInput;
+	var hInput:TextInput;
 	var sxInput:TextInput;
 	var syInput:TextInput;
 	var rotationInput:TextInput;
@@ -124,6 +126,16 @@ class PropertiesPanel extends LayoutGroup
 		sizeItem.layout = new ResponsiveGridLayout(2);
 		sizeItem.layoutData = VerticalLayoutData.fillHorizontal();
 
+		itemLabel = UIFactory.createItemLabel('W', "wTransform", 20, new ResponsiveGridLayoutData(1),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		wInput = itemLabel.input;
+		sizeItem.addChild(itemLabel.group);
+
+		itemLabel = UIFactory.createItemLabel('H', "hTransform", 20, new ResponsiveGridLayoutData(1),
+			HorizontalLayoutData.fillHorizontal(60.0), true);
+		hInput = itemLabel.input;
+		sizeItem.addChild(itemLabel.group);
+
 		itemLabel = UIFactory.createItemLabel('Sx', "sxTransform", 20, new ResponsiveGridLayoutData(1),
 			HorizontalLayoutData.fillHorizontal(60.0), true);
 		sxInput = itemLabel.input;
@@ -185,6 +197,8 @@ class PropertiesPanel extends LayoutGroup
 		nameInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		xInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		yInput.addEventListener(Event.CHANGE, dispatchInputChange);
+		wInput.addEventListener(Event.CHANGE, dispatchInputChange);
+		hInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		sxInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		syInput.addEventListener(Event.CHANGE, dispatchInputChange);
 		rotationInput.addEventListener(Event.CHANGE, dispatchInputChange);
@@ -198,6 +212,8 @@ class PropertiesPanel extends LayoutGroup
 		nameInput.removeEventListener(Event.CHANGE, dispatchInputChange);
 		xInput.removeEventListener(Event.CHANGE, dispatchInputChange);
 		yInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		wInput.removeEventListener(Event.CHANGE, dispatchInputChange);
+		hInput.removeEventListener(Event.CHANGE, dispatchInputChange);
 		sxInput.removeEventListener(Event.CHANGE, dispatchInputChange);
 		syInput.removeEventListener(Event.CHANGE, dispatchInputChange);
 		rotationInput.removeEventListener(Event.CHANGE, dispatchInputChange);
@@ -225,6 +241,8 @@ class PropertiesPanel extends LayoutGroup
 				sizeItem.visible = true;
 				sxInput.text = "" + kImage.image.scaleX;
 				syInput.text = "" + kImage.image.scaleY;
+				wInput.text = "" + kImage.image.width;
+				hInput.text = "" + kImage.image.height;
 
 				pivots.visible = true;
 
@@ -268,6 +286,8 @@ class PropertiesPanel extends LayoutGroup
 			yPivotInput.text = "" + asset.pivotY;
 			sxInput.text = "" + asset.image.scaleX;
 			syInput.text = "" + asset.image.scaleY;
+			wInput.text = "" + asset.image.width;
+			hInput.text = "" + asset.image.height;
 		}
 		addChangeListeners();
 	}

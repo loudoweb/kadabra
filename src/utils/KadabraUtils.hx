@@ -73,6 +73,13 @@ class KadabraUtils
 		return Math.fround(value * mult) / mult;
 	}
 
+	inline static public function sign(value:Float):Int
+	{
+		if (value >= 0)
+			return 1;
+		return -1;
+	}
+
 	/**
 	 * Get corrected position of sprite depending of rotation and pivot
 	 * @param x 

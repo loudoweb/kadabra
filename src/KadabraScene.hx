@@ -551,12 +551,35 @@ class KadabraScene extends Sprite
 					currentAsset.x = Std.parseFloat(input.text);
 				case "yTransform":
 					currentAsset.y = Std.parseFloat(input.text);
+				case "wTransform":
+					if (Std.is(currentAsset, KadabraImage))
+					{
+						var kImage:KadabraImage = cast currentAsset;
+						var _s = kImage.image.scaleX.sign();
+						kImage.image.width = Std.parseFloat(input.text);
+						// fix negative scale when updating width
+						kImage.image.scaleX *= _s;
+						updateGizmos();
+						onAssetUpdated.dispatch();
+					}
+				case "hTransform":
+					if (Std.is(currentAsset, KadabraImage))
+					{
+						var kImage:KadabraImage = cast currentAsset;
+						var _s = kImage.image.scaleY.sign();
+						kImage.image.height = Std.parseFloat(input.text);
+						kImage.image.scaleY *= _s;
+						updateGizmos();
+						onAssetUpdated.dispatch();
+					}
 				case "sxTransform":
 					if (Std.is(currentAsset, KadabraImage))
 					{
 						var kImage:KadabraImage = cast currentAsset;
 						kImage.image.scaleX = Std.parseFloat(input.text);
+						trace(kImage.image.scaleX, kImage.image.width, kImage.width);
 						updateGizmos();
+						onAssetUpdated.dispatch();
 					}
 				case "syTransform":
 					if (Std.is(currentAsset, KadabraImage))
@@ -564,6 +587,7 @@ class KadabraScene extends Sprite
 						var kImage:KadabraImage = cast currentAsset;
 						kImage.image.scaleY = Std.parseFloat(input.text);
 						updateGizmos();
+						onAssetUpdated.dispatch();
 					}
 				case "rTransform":
 					currentAsset.rotation = Std.parseFloat(input.text);
